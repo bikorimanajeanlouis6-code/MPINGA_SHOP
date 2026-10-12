@@ -1,0 +1,123 @@
+@page "/Products"
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.ProductServices
+@rendermode InteractiveServer
+@inject IProductService ProductService
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudDataGrid T="GetProductDTO"
+                 Items="@products"
+                 SortMode="SortMode.Multiple"
+                 Filterable="true"
+                 QuickFilter="@QuickFilter"
+                 Dense="true"
+                 Hover="true"
+                 Elevation="1">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Products</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString"
+                          Placeholder="Search products"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="me-3" />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenAddProductAsync">
+                Add Product
+            </MudButton>
+        </ToolBarContent>
+
+        <Columns>
+            <PropertyColumn Property="product => product.ProductName" Title="Product Name" />
+            <PropertyColumn Property="product => product.ProductDescription" Title="Description" />
+            <TemplateColumn Title="Price">
+                <CellTemplate>
+                    @{
+                        var price = decimal.TryParse(context.Item.ProductPrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedPrice)
+                            ? parsedPrice
+                            : 0m;
+                    }
+                    @price.ToString("C2")
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="product => product.ProductQuantity" Title="Quantity" />
+            <PropertyColumn Property="product => product.ProductCategoryName" Title="Category" />
+            <TemplateColumn Title="Date Added">
+                <CellTemplate>
+                    @context.Item.DateAdded.ToString("dd MMM yyyy")
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="product => product.UserAdded" Title="Added By" />
+            <TemplateColumn Title="Status">
+                <CellTemplate>
+                    <MudChip T="string"
+                             Size="Size.Small"
+                             Variant="Variant.Filled"
+                             Color="@GetStatusColor(context.Item.Status)">
+                        @context.Item.Status
+                    </MudChip>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+
+        <PagerContent>
+            <MudDataGridPager T="GetProductDTO" />
+        </PagerContent>
+    </MudDataGrid>
+</MudContainer>
+
+@code {
+    private string _searchString = string.Empty;
+    private List<GetProductDTO> products = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        products = await ProductService.GetAllProductAsync();
+    }
+
+    private Func<GetProductDTO, bool> QuickFilter => product =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        return product.ProductName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || (product.ProductDescription ?? string.Empty).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || product.ProductCategoryName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || product.ProductPrice.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || product.ProductQuantity.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || product.DateAdded.ToString("dd MMM yyyy").Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || product.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || product.Status.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    };
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Inactive" => Color.Error,
+        _ => Color.Default
+    };
+
+    private async Task OpenAddProductAsync()
+    {
+        var dialog = await DialogService.ShowAsync<AddProduct>(
+            "Add Product",
+            new DialogOptions
+            {
+                CloseButton = true,
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true
+            });
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+            products = await ProductService.GetAllProductAsync();
+    }
+}

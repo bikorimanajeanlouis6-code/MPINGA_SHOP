@@ -1,0 +1,86 @@
+@using Application.DTOs
+@using Application.Services.ExpenseTypeServices
+@inject IExpenseTypeService ExpenseTypeService
+@inject ISnackbar Snackbar
+@inject ILogger<AddExpenseType> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>Add Expense Type</TitleContent>
+    <DialogContent>
+        <EditForm Model="@expenseType" OnValidSubmit="SaveExpenseTypeAsync">
+            <DataAnnotationsValidator />
+            <MudTextField @bind-Value="expenseType.ExpenseTypeName"
+                          For="@(() => expenseType.ExpenseTypeName)"
+                          Label="Expense Type Name"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          AutoFocus="true"
+                          Class="dialog-input" />
+
+            <MudTextField @bind-Value="expenseType.ExpenseTypeDescription"
+                          For="@(() => expenseType.ExpenseTypeDescription)"
+                          Label="Description (optional)"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Lines="3"
+                          Class="dialog-input" />
+
+            <div class="d-flex justify-end mt-4">
+                <MudButton Color="Color.Primary"
+                           ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Save"
+                           Disabled="@isSaving"
+                           Class="dialog-button-save">
+                    Save Expense Type
+                </MudButton>
+            </div>
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   ButtonType="ButtonType.Button"
+                   Variant="Variant.Text"
+                   Color="Color.Default"
+                   Disabled="@isSaving"
+                   Class="dialog-button-cancel">
+            Close
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private readonly AddExpenseTypeDTO expenseType = new();
+    private bool isSaving;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveExpenseTypeAsync()
+    {
+        if (isSaving)
+            return;
+
+        isSaving = true;
+        expenseType.DateAdded = DateTime.Now;
+        expenseType.Status = "Active";
+
+        try
+        {
+            await ExpenseTypeService.AddExpenseTypeAsync(expenseType);
+            Snackbar.Add("Expense type added successfully.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to add expense type.");
+            Snackbar.Add("Could not add the expense type.", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

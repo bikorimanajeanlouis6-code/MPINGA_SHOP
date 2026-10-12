@@ -1,0 +1,105 @@
+@page "/categories"
+@using Application.DTOs
+@using Application.Services.ProductCategoryServices
+@rendermode InteractiveServer
+@inject IProductCategoryService ProductCategoryService
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudDataGrid T="GetProductCategoryDTO"
+                 Items="@categories"
+                 SortMode="SortMode.Multiple"
+                 Filterable="true"
+                 QuickFilter="@QuickFilter"
+                 Dense="true"
+                 Hover="true"
+                 Elevation="1">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Product Categories</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString"
+                          Placeholder="Search categories"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="me-3" />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenAddCategoryAsync">
+                Add Category
+            </MudButton>
+        </ToolBarContent>
+
+        <Columns>
+            <PropertyColumn Property="category => category.ProductCategoryName" Title="Product Category Name" />
+            <TemplateColumn Title="Date Added">
+                <CellTemplate>
+                    @context.Item.DateAdded.ToString("dd MMM yyyy")
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="category => category.UserAdded" Title="Added By" />
+            <TemplateColumn Title="Status">
+                <CellTemplate>
+                    <MudChip T="string"
+                             Size="Size.Small"
+                             Variant="Variant.Filled"
+                             Color="@GetStatusColor(context.Item.Status)">
+                        @context.Item.Status
+                    </MudChip>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+
+        <PagerContent>
+            <MudDataGridPager T="GetProductCategoryDTO" />
+        </PagerContent>
+    </MudDataGrid>
+</MudContainer>
+
+@code {
+    private string _searchString = string.Empty;
+    private List<GetProductCategoryDTO> categories = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        categories = await ProductCategoryService.GetAllProductCategoriesAsync();
+    }
+
+    private Func<GetProductCategoryDTO, bool> QuickFilter => category =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        return category.ProductCategoryName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || category.DateAdded.ToString("dd MMM yyyy").Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || category.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || category.Status.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    };
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Inactive" => Color.Error,
+        _ => Color.Default
+    };
+
+    private async Task OpenAddCategoryAsync()
+    {
+        var dialog = await DialogService.ShowAsync<AddProductCategory>(
+            "Add Product Category",
+            new DialogOptions
+            {
+                CloseButton = true,
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true
+            });
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+            categories = await ProductCategoryService.GetAllProductCategoriesAsync();
+    }
+}

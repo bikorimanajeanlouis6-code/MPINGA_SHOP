@@ -1,0 +1,170 @@
+@using Application.DTOs
+@using Application.Services.ExpenseServices
+@using Application.Services.ExpenseTypeServices
+@inject IExpenseService ExpenseService
+@inject IExpenseTypeService ExpenseTypeService
+@inject ISnackbar Snackbar
+@inject ILogger<AddExpense> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>Add Expense</TitleContent>
+    <DialogContent>
+        <EditForm Model="@expense" OnValidSubmit="SaveExpenseAsync">
+            <DataAnnotationsValidator />
+            <MudTextField @bind-Value="expense.ExpenseName"
+                          For="@(() => expense.ExpenseName)"
+                          Label="Expense Name"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          AutoFocus="true"
+                          Class="dialog-input" />
+
+            <MudNumericField T="decimal"
+                             @bind-Value="expense.ExpenseAmount"
+                             For="@(() => expense.ExpenseAmount)"
+                             Label="Expense Amount"
+                             Variant="Variant.Outlined"
+                             Margin="Margin.Dense"
+                             Min="0.01m"
+                             Class="dialog-input" />
+
+            <MudDatePicker @bind-Date="_expenseDate"
+                           Label="Expense Date"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           DateFormat="dd MMM yyyy"
+                           Class="dialog-input" />
+
+            @if (loadError)
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-3">
+                    Expense types could not be loaded. Retry before saving.
+                </MudAlert>
+                <MudButton OnClick="LoadExpenseTypesAsync"
+                           Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           Disabled="@isLoading">
+                    Retry
+                </MudButton>
+            }
+            else if (expenseTypes.Count == 0 && !isLoading)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mt-3">
+                    No expense types are available. Select an existing expense type before saving.
+                </MudAlert>
+            }
+
+            <MudSelect T="int?"
+                       @bind-Value="_selectedExpenseTypeId"
+                       Label="Select Expense Type"
+                       Placeholder="Choose an expense type"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Required="true"
+                       Disabled="@(!hasExpenseType || isLoading || loadError || isSaving)"
+                       Class="dialog-input">
+                @foreach (var expenseType in expenseTypes)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)expenseType.Id)">
+                        @expenseType.ExpenseTypeName
+                    </MudSelectItem>
+                }
+            </MudSelect>
+
+            <div class="d-flex justify-end mt-4">
+                <MudButton Color="Color.Primary"
+                           ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Save"
+                           Disabled="@(!CanSave)"
+                           Class="dialog-button-save">
+                    Save Expense
+                </MudButton>
+            </div>
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   ButtonType="ButtonType.Button"
+                   Variant="Variant.Text"
+                   Disabled="@isSaving"
+                   Class="dialog-button-cancel">
+            Close
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private readonly AddExpenseDTO expense = new();
+    private List<GetExpenseTypeDTO> expenseTypes = new();
+    private int? _selectedExpenseTypeId;
+    private DateTime? _expenseDate = DateTime.Today;
+    private bool isLoading;
+    private bool isSaving;
+    private bool loadError;
+    private bool hasExpenseType => expenseTypes.Count > 0;
+    private bool CanSave =>
+        expenseTypes.Count > 0
+        && !loadError
+        && !isLoading
+        && !isSaving
+        && _selectedExpenseTypeId.HasValue
+        && expense.ExpenseAmount > 0
+        && _expenseDate.HasValue;
+
+    protected override Task OnInitializedAsync() => LoadExpenseTypesAsync();
+
+    private async Task LoadExpenseTypesAsync()
+    {
+        isLoading = true;
+        loadError = false;
+
+        try
+        {
+            expenseTypes = await ExpenseTypeService.GetAllExpenseTypeAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load expense types.");
+            loadError = true;
+            Snackbar.Add("Could not load expense types.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveExpenseAsync()
+    {
+        if (!CanSave || _expenseDate is null)
+            return;
+
+        isSaving = true;
+        expense.ExpenseTypeId = _selectedExpenseTypeId!.Value;
+        expense.ExpenseDate = _expenseDate.Value;
+        expense.DateAdded = DateTime.Now;
+        expense.Status = "Active";
+
+        try
+        {
+            await ExpenseService.AddExpenseAsync(expense);
+            Snackbar.Add("Expense added successfully.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to add expense.");
+            Snackbar.Add("Could not add the expense.", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

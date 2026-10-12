@@ -1,0 +1,65 @@
+@using Application.DTOs
+@using Application.Services.CustomerServices
+@rendermode InteractiveServer
+@inject ICustomerService CustomerService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>Add Customer</TitleContent>
+    <DialogContent>
+        <EditForm Model="@customer" OnValidSubmit="SaveCustomerAsync">
+            <DataAnnotationsValidator />
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="customer.CustomerName"
+                                  Label="Customer Name"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="customer.Email"
+                                  Label="Email"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="customer.PhoneNumber"
+                                  Label="Phone Number"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" />
+                </MudItem>
+            </MudGrid>
+
+            <div class="d-flex justify-end mt-4">
+                <MudButton Color="Color.Primary"
+                           ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled">SAVE</MudButton>
+            </div>
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private readonly AddCustomerDTO customer = new();
+
+    private void Cancel() => MudDialog.Close(DialogResult.Cancel());
+
+    private async Task SaveCustomerAsync()
+    {
+        customer.DateAdded = DateTime.Now;
+        customer.Status = "Active";
+
+        await CustomerService.AddCustomerAsync(customer);
+        Snackbar.Add("Customer added successfully!", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

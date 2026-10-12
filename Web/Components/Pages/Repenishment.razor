@@ -1,0 +1,207 @@
+@page "/Replenishment"
+@using System.Globalization
+@using Application.Services.ReplenishmentServices
+@rendermode InteractiveServer
+@inject IReplenishmentService ReplenishmentService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ILogger<Repenishment> Logger
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudStack Spacing="3">
+        <MudStack Row="true" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h6">Replenishments</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString"
+                          Placeholder="Search replenishments"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="me-3" />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenAddReplenishmentAsync">
+                Add Replenishment
+            </MudButton>
+        </MudStack>
+
+        @if (loadError)
+        {
+            <MudAlert Severity="Severity.Error">
+                Replenishments could not be loaded. Retry to try again.
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Error"
+                           OnClick="@LoadReplenishmentsAsync"
+                           Disabled="@isLoading">
+                    Retry
+                </MudButton>
+            </MudAlert>
+        }
+        else if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else
+        {
+            <MudDataGrid T="GetReplenishmentDTO"
+                         Items="@replenishments"
+                         SortMode="SortMode.Multiple"
+                         Filterable="true"
+                         QuickFilter="@QuickFilter"
+                         Dense="true"
+                         Hover="true"
+                         Elevation="1">
+                <Columns>
+                    <PropertyColumn Property="replenishment => replenishment.ReplenishmentName" Title="Replenishment Name" />
+                    <PropertyColumn Property="replenishment => replenishment.SupplierName" Title="Supplier Name" />
+                    <PropertyColumn Property="replenishment => replenishment.SupplierPhone" Title="Supplier Phone" />
+                    <TemplateColumn Title="Amount">
+                        <CellTemplate>
+                            @{
+                                var amount = decimal.TryParse(context.Item.ReplenishmentAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedAmount)
+                                    ? parsedAmount
+                                    : 0m;
+                            }
+                            @amount.ToString("C2")
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Replenishment Date">
+                        <CellTemplate>
+                            @context.Item.ReplenishmentDate.ToString("dd MMM yyyy")
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="replenishment => replenishment.QuantityReplenished" Title="Quantity Replenished" />
+                    <TemplateColumn Title="Selling Price">
+                        <CellTemplate>
+                            @{
+                                var sellingPrice = decimal.TryParse(context.Item.SellingPrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedSellingPrice)
+                                    ? parsedSellingPrice
+                                    : 0m;
+                            }
+                            @sellingPrice.ToString("C2")
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Purchasing Price">
+                        <CellTemplate>
+                            @{
+                                var purchasePrice = decimal.TryParse(context.Item.PurchasePrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedPurchasePrice)
+                                    ? parsedPurchasePrice
+                                    : 0m;
+                            }
+                            @purchasePrice.ToString("C2")
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Total Purchase Price">
+                        <CellTemplate>
+                            @{
+                                var totalPurchasePrice = decimal.TryParse(context.Item.TotalPurchasePrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedTotalPurchasePrice)
+                                    ? parsedTotalPurchasePrice
+                                    : 0m;
+                            }
+                            @totalPurchasePrice.ToString("C2")
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Date Added">
+                        <CellTemplate>
+                            @context.Item.DateAdded.ToString("dd MMM yyyy")
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+
+                <NoRecordsContent>
+                    <MudText Class="pa-4" Color="Color.Secondary">
+                        No replenishments have been added yet. Select Add Replenishment to create one.
+                    </MudText>
+                </NoRecordsContent>
+
+                <PagerContent>
+                    <MudDataGridPager T="GetReplenishmentDTO" />
+                </PagerContent>
+            </MudDataGrid>
+        }
+    </MudStack>
+</MudContainer>
+
+@code {
+    private string _searchString = string.Empty;
+    private List<GetReplenishmentDTO> replenishments = new();
+    private bool _isOpeningAddDialog;
+    private bool isLoading;
+    private bool loadError;
+
+    protected override Task OnInitializedAsync() => LoadReplenishmentsAsync();
+
+    private async Task LoadReplenishmentsAsync()
+    {
+        isLoading = true;
+        loadError = false;
+
+        try
+        {
+            replenishments = await ReplenishmentService.GetAllReplenishmentsAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load replenishments.");
+            loadError = true;
+            Snackbar.Add("Could not load replenishments.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Func<GetReplenishmentDTO, bool> QuickFilter => replenishment =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        return replenishment.ReplenishmentName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || replenishment.ReplenishmentAmount.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || replenishment.SupplierName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || replenishment.SupplierPhone.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || replenishment.ReplenishmentDate.ToString("dd MMM yyyy").Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || replenishment.QuantityReplenished.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || replenishment.SellingPrice.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || replenishment.PurchasePrice.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || replenishment.TotalPurchasePrice.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || replenishment.DateAdded.ToString("dd MMM yyyy").Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    };
+
+    private async Task OpenAddReplenishmentAsync()
+    {
+        if (_isOpeningAddDialog)
+            return;
+
+        _isOpeningAddDialog = true;
+        try
+        {
+            var dialog = await DialogService.ShowAsync<AddReplenishment>(
+                "Add Replenishment",
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Small,
+                    FullWidth = true
+                });
+            var result = await dialog.Result;
+
+            if (result is not null && !result.Canceled)
+                await LoadReplenishmentsAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open or refresh the replenishment dialog.");
+            Snackbar.Add("Could not open or refresh the replenishment form.", Severity.Error);
+        }
+        finally
+        {
+            _isOpeningAddDialog = false;
+        }
+    }
+}

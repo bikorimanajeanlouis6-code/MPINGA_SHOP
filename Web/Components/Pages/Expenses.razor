@@ -1,0 +1,94 @@
+@page "/Expenses"
+@using Application.DTOs
+@using Application.Services.ExpenseServices
+@rendermode InteractiveServer
+@inject IExpenseService ExpenseService
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudDataGrid T="GetExpenseDTO"
+                 Items="@expenses"
+                 SortMode="SortMode.Multiple"
+                 Filterable="true"
+                 QuickFilter="@QuickFilter"
+                 Dense="true"
+                 Hover="true"
+                 Elevation="1">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Expenses</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString"
+                          Placeholder="Search expenses"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense" />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenAddExpenseAsync">
+                Add Expense
+            </MudButton>
+        </ToolBarContent>
+
+        <Columns>
+            <PropertyColumn Property="expense => expense.ExpenseName" Title="Expense Name" />
+            <PropertyColumn Property="expense => expense.ExpenseTypeName" Title="Expense Type" />
+            <TemplateColumn Title="Expense Amount">
+                <CellTemplate>
+                    @context.Item.ExpenseAmount.ToString("C2")
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Title="Expense Date">
+                <CellTemplate>
+                    @context.Item.ExpenseDate.ToString("dd MMM yyyy")
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="expense => expense.UserAdded" Title="User Added" />
+        </Columns>
+
+        <PagerContent>
+            <MudDataGridPager T="GetExpenseDTO" />
+        </PagerContent>
+    </MudDataGrid>
+</MudContainer>
+
+@code {
+    private string _searchString = string.Empty;
+    private List<GetExpenseDTO> expenses = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        expenses = await ExpenseService.GetAllExpenseAsync();
+    }
+
+    private Func<GetExpenseDTO, bool> QuickFilter => expense =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        return expense.ExpenseName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || expense.ExpenseTypeName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || expense.ExpenseAmount.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || expense.ExpenseDate.ToString("dd MMM yyyy").Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || expense.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    };
+
+    private async Task OpenAddExpenseAsync()
+    {
+        var dialog = await DialogService.ShowAsync<AddExpense>(
+            "Add Expense",
+            new DialogOptions
+            {
+                CloseButton = true,
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true
+            });
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+            expenses = await ExpenseService.GetAllExpenseAsync();
+    }
+}

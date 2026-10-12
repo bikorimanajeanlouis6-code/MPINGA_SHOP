@@ -1,0 +1,107 @@
+@page "/EXPENSECATEGORIES"
+@using Application.DTOs
+@using Application.Services.ExpenseTypeServices
+@rendermode InteractiveServer
+@inject IExpenseTypeService ExpenseTypeService
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudDataGrid T="GetExpenseTypeDTO"
+                 Items="@expenseTypes"
+                 SortMode="SortMode.Multiple"
+                 Filterable="true"
+                 QuickFilter="@QuickFilter"
+                 Dense="true"
+                 Hover="true"
+                 Elevation="1">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Expense Types</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString"
+                          Placeholder="Search expense types"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="me-3" />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenAddExpenseTypeAsync">
+                Add Expense Type
+            </MudButton>
+        </ToolBarContent>
+
+        <Columns>
+            <PropertyColumn Property="expenseType => expenseType.ExpenseTypeName" Title="Expense Type Name" />
+            <PropertyColumn Property="expenseType => expenseType.ExpenseTypeDescription" Title="Description" />
+            <TemplateColumn Title="Date Added">
+                <CellTemplate>
+                    @context.Item.DateAdded.ToString("dd MMM yyyy")
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="expenseType => expenseType.UserAdded" Title="Added By" />
+            <TemplateColumn Title="Status">
+                <CellTemplate>
+                    <MudChip T="string"
+                             Size="Size.Small"
+                             Variant="Variant.Filled"
+                             Color="@GetStatusColor(context.Item.Status)">
+                        @context.Item.Status
+                    </MudChip>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+
+        <PagerContent>
+            <MudDataGridPager T="GetExpenseTypeDTO" />
+        </PagerContent>
+    </MudDataGrid>
+</MudContainer>
+
+@code {
+    private string _searchString = string.Empty;
+    private List<GetExpenseTypeDTO> expenseTypes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        expenseTypes = await ExpenseTypeService.GetAllExpenseTypeAsync();
+    }
+
+    private Func<GetExpenseTypeDTO, bool> QuickFilter => expenseType =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        return expenseType.ExpenseTypeName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || expenseType.ExpenseTypeDescription.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || expenseType.DateAdded.ToString("dd MMM yyyy").Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || expenseType.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || expenseType.Status.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    };
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Inactive" => Color.Error,
+        _ => Color.Default
+    };
+
+    private async Task OpenAddExpenseTypeAsync()
+    {
+        var dialog = await DialogService.ShowAsync<AddExpenseType>(
+            "Add Expense Type",
+            new DialogOptions
+            {
+                CloseButton = true,
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true
+            });
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+            expenseTypes = await ExpenseTypeService.GetAllExpenseTypeAsync();
+    }
+}

@@ -1,0 +1,91 @@
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\bin\Debug\net10.0\Infrastructure.deps.json
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\bin\Debug\net10.0\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\bin\Debug\net10.0\Infrastructure.pdb
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\bin\Debug\net10.0\Application.dll
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\bin\Debug\net10.0\Domain.dll
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\bin\Debug\net10.0\Application.pdb
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\bin\Debug\net10.0\Domain.pdb
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\obj\Debug\net10.0\Infrastructure.csproj.AssemblyReference.cache
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\obj\Debug\net10.0\Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\obj\Debug\net10.0\Infrastructure.AssemblyInfoInputs.cache
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\obj\Debug\net10.0\Infrastructure.AssemblyInfo.cs
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\obj\Debug\net10.0\Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\obj\Debug\net10.0\Infrastr.15EFFBFE.Up2Date
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\obj\Debug\net10.0\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\obj\Debug\net10.0\refint\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\obj\Debug\net10.0\Infrastructure.pdb
+C:\Users\hp\source\repos\MPINGA SHOP\Infrastructure\obj\Debug\net10.0\ref\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\bin\Debug\net10.0\Infrastructure.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\bin\Debug\net10.0\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\bin\Debug\net10.0\Infrastructure.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\bin\Debug\net10.0\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\bin\Debug\net10.0\Domain.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\bin\Debug\net10.0\Application.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\bin\Debug\net10.0\Domain.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\obj\Debug\net10.0\Infrastructure.csproj.AssemblyReference.cache
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\obj\Debug\net10.0\Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\obj\Debug\net10.0\Infrastructure.AssemblyInfoInputs.cache
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\obj\Debug\net10.0\Infrastructure.AssemblyInfo.cs
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\obj\Debug\net10.0\Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\obj\Debug\net10.0\Infrastr.15EFFBFE.Up2Date
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\obj\Debug\net10.0\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\obj\Debug\net10.0\refint\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\obj\Debug\net10.0\Infrastructure.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Infrastructure\obj\Debug\net10.0\ref\Infrastructure.dll
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\customer-build\Infrastructure.deps.json
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\customer-build\Infrastructure.dll
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\customer-build\Infrastructure.pdb
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\remove-customer-build\Infrastructure.deps.json
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\remove-customer-build\Infrastructure.dll
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\remove-customer-build\Infrastructure.pdb
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\stock-build\Infrastructure.deps.json
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\stock-build\Infrastructure.dll
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\stock-build\Infrastructure.pdb
+C:\Users\hp\AppData\Local\Temp\mpingashop-build\Debug\net10.0\Infrastructure.deps.json
+C:\Users\hp\AppData\Local\Temp\mpingashop-build\Debug\net10.0\Infrastructure.dll
+C:\Users\hp\AppData\Local\Temp\mpingashop-build\Debug\net10.0\Infrastructure.pdb
+C:\Users\hp\AppData\Local\Temp\mpinga-dialog-verify\bin\Debug\net10.0\Infrastructure.deps.json
+C:\Users\hp\AppData\Local\Temp\mpinga-dialog-verify\bin\Debug\net10.0\Infrastructure.dll
+C:\Users\hp\AppData\Local\Temp\mpinga-dialog-verify\bin\Debug\net10.0\Infrastructure.pdb
+C:\Users\hp\AppData\Local\Temp\mpinga-build-check\Debug\net10.0\Infrastructure.deps.json
+C:\Users\hp\AppData\Local\Temp\mpinga-build-check\Debug\net10.0\Infrastructure.dll
+C:\Users\hp\AppData\Local\Temp\mpinga-build-check\Debug\net10.0\Infrastructure.pdb
+C:\Users\hp\AppData\Local\Temp\mpinga-build-expenses-final\Debug\net10.0\Infrastructure.deps.json
+C:\Users\hp\AppData\Local\Temp\mpinga-build-expenses-final\Debug\net10.0\Infrastructure.dll
+C:\Users\hp\AppData\Local\Temp\mpinga-build-expenses-final\Debug\net10.0\Infrastructure.pdb
+C:\Users\hp\AppData\Local\Temp\mpinga-build-add-expense\Debug\net10.0\Infrastructure.deps.json
+C:\Users\hp\AppData\Local\Temp\mpinga-build-add-expense\Debug\net10.0\Infrastructure.dll
+C:\Users\hp\AppData\Local\Temp\mpinga-build-add-expense\Debug\net10.0\Infrastructure.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\buildcheck\Infrastructure.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\buildcheck\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\buildcheck\Infrastructure.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-type-buildcheck\Infrastructure.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-type-buildcheck\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-type-buildcheck\Infrastructure.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\required-fields-buildcheck\Infrastructure.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\required-fields-buildcheck\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\required-fields-buildcheck\Infrastructure.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-form-buildcheck\Infrastructure.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-form-buildcheck\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-form-buildcheck\Infrastructure.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-type-select-buildcheck\Infrastructure.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-type-select-buildcheck\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-type-select-buildcheck\Infrastructure.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\remove-shop-buildcheck\Infrastructure.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\remove-shop-buildcheck\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\remove-shop-buildcheck\Infrastructure.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-buildcheck\Infrastructure.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-buildcheck\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-buildcheck\Infrastructure.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-ui-check\Infrastructure.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-ui-check\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-ui-check\Infrastructure.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\supplier-expense-buildcheck\Infrastructure.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\supplier-expense-buildcheck\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\supplier-expense-buildcheck\Infrastructure.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\forms-fix-buildcheck\Infrastructure.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\forms-fix-buildcheck\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\forms-fix-buildcheck\Infrastructure.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-compile-fix\Infrastructure.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-compile-fix\Infrastructure.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-compile-fix\Infrastructure.pdb

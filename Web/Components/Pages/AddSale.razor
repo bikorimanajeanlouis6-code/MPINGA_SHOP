@@ -1,0 +1,162 @@
+@using Application.DTOs
+@using Application.Services.CustomerServices
+@using Application.Services.SalesServices
+@inject ICustomerService CustomerService
+@inject ISalesService SalesService
+@inject ISnackbar Snackbar
+@inject ILogger<AddSale> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>Add Sale</TitleContent>
+    <DialogContent>
+        @if (loadError)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-3">
+                Customers could not be loaded. Retry before adding a sale.
+            </MudAlert>
+            <MudButton OnClick="LoadCustomersAsync"
+                       Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       Disabled="@isLoading">
+                Retry
+            </MudButton>
+        }
+        else if (customers.Count == 0 && !isLoading)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">
+                No customers are available. Add a customer before creating a sale.
+            </MudAlert>
+        }
+
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+        }
+
+        <MudGrid>
+            <MudItem xs="12">
+            <MudSelect T="int?"
+                       @bind-Value="_selectedCustomerId"
+                       Label="Select Customer"
+                       Placeholder="Choose a customer"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Required="true"
+                       Disabled="@(customers.Count == 0 || isLoading || loadError || isSaving)"
+                       Class="dialog-input">
+                @foreach (var customer in customers)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)customer.Id)">
+                        @customer.CustomerName
+                    </MudSelectItem>
+                }
+            </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12">
+            <MudDatePicker @bind-Date="_saleDate"
+                           Label="Sale Date"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           DateFormat="dd MMM yyyy"
+                           Disabled="@isSaving"
+                           Class="dialog-input" />
+            </MudItem>
+
+        </MudGrid>
+
+        <div class="d-flex justify-end mt-4">
+            <MudButton Color="Color.Primary"
+                       OnClick="SaveSaleAsync"
+                       ButtonType="ButtonType.Button"
+                       Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       Disabled="@(!CanSave)"
+                       Class="dialog-button-save">
+                Save Sale
+            </MudButton>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   ButtonType="ButtonType.Button"
+                   Variant="Variant.Text"
+                   Disabled="@isSaving"
+                   Class="dialog-button-cancel">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private readonly AddSalesDTO sale = new();
+    private List<GetCustomerDTO> customers = new();
+    private int? _selectedCustomerId;
+    private DateTime? _saleDate = DateTime.Today;
+    private bool isLoading;
+    private bool isSaving;
+    private bool loadError;
+
+    private bool CanSave =>
+        customers.Count > 0
+        && !loadError
+        && !isLoading
+        && !isSaving
+        && _selectedCustomerId.HasValue
+        && _saleDate.HasValue;
+
+    protected override Task OnInitializedAsync() => LoadCustomersAsync();
+
+    private async Task LoadCustomersAsync()
+    {
+        isLoading = true;
+        loadError = false;
+
+        try
+        {
+            customers = await CustomerService.GetAllCustomerAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load customers for a new sale.");
+            loadError = true;
+            Snackbar.Add("Could not load customers.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveSaleAsync()
+    {
+        if (!CanSave || !_saleDate.HasValue || !_selectedCustomerId.HasValue)
+            return;
+
+        isSaving = true;
+        sale.CustomerId = _selectedCustomerId.Value;
+        sale.SaleDate = _saleDate.Value;
+        sale.Status = "Active";
+
+        try
+        {
+            await SalesService.AddSalesAsync(sale);
+            Snackbar.Add("Sale added successfully.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to add sale.");
+            Snackbar.Add("Could not add the sale.", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

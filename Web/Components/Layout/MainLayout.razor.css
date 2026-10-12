@@ -1,0 +1,246 @@
+.store-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.announcement-bar {
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 6px 20px;
+    background: #173d32;
+    color: #f8f5ef;
+    font-size: 11px;
+    letter-spacing: .04em;
+}
+
+.announcement-bar a {
+    color: #d9b875;
+    text-decoration: none;
+}
+
+.store-header {
+    min-height: 86px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 24px;
+    padding: 0 clamp(24px, 6vw, 96px);
+    background: #fbfaf7;
+    border-bottom: 1px solid #e9e5dc;
+}
+
+.brand {
+    width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #173d32;
+    text-decoration: none;
+}
+
+.brand-mark {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #173d32;
+    color: #f5e8c9;
+    font-family: Georgia, serif;
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.brand-name {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: .15em;
+    line-height: 1;
+}
+
+.brand-name span {
+    color: #a87937;
+    font-size: 9px;
+    letter-spacing: .34em;
+}
+
+.primary-nav {
+    display: flex;
+    align-items: center;
+    gap: clamp(20px, 3vw, 42px);
+}
+
+.primary-nav a,
+.header-cta {
+    color: #26352e;
+    font-size: 12px;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.primary-nav a:hover,
+.back-to-top:hover {
+    color: #a87937;
+}
+
+.header-actions {
+    justify-self: end;
+}
+
+.header-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border: 1px solid #173d32;
+    border-radius: 2px;
+    transition: background .2s ease, color .2s ease;
+}
+
+.header-cta:hover {
+    background: #173d32;
+    color: #fff;
+}
+
+.mobile-menu-toggle {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: none;
+    border: 1px solid #d9d5cb;
+    border-radius: 50%;
+    background: transparent;
+    color: #173d32;
+}
+
+.mobile-menu-toggle ::deep .mud-icon-root {
+    font-size: 18px;
+}
+
+.account-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    border: 0;
+    background: transparent;
+    color: #26352e;
+    cursor: pointer;
+    font: inherit;
+}
+
+.account-avatar {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #e6deca;
+    color: #173d32;
+    font-size: 12px;
+}
+
+main {
+    flex: 1;
+}
+
+.store-footer {
+    min-height: 116px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 24px clamp(24px, 6vw, 96px);
+    background: #173d32;
+    color: #f8f5ef;
+}
+
+.footer-brand {
+    color: #f8f5ef;
+}
+
+.footer-brand .brand-mark {
+    background: #f5e8c9;
+    color: #173d32;
+}
+
+.footer-brand .brand-name span {
+    color: #d9b875;
+}
+
+.store-footer p {
+    margin: 0;
+    color: #d0d9d2;
+    font-family: Georgia, serif;
+    font-size: 15px;
+    font-style: italic;
+}
+
+.back-to-top {
+    color: #d9b875;
+    font-size: 11px;
+    text-decoration: none;
+}
+
+@media (max-width: 760px) {
+    .announcement-bar {
+        font-size: 10px;
+    }
+
+    .store-header {
+        min-height: 72px;
+        grid-template-columns: 1fr auto auto;
+        gap: 16px;
+        padding-inline: 20px;
+    }
+
+    .mobile-menu-toggle {
+        display: inline-flex;
+    }
+
+    .primary-nav {
+        position: absolute;
+        z-index: 5;
+        top: 108px;
+        right: 0;
+        left: 0;
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 8px 20px 16px;
+        background: #fbfaf7;
+        border-bottom: 1px solid #e9e5dc;
+        box-shadow: 0 12px 18px rgb(23 61 50 / 8%);
+    }
+
+    .primary-nav.is-open {
+        display: flex;
+    }
+
+    .primary-nav a {
+        padding: 13px 4px;
+        border-bottom: 1px solid #eeeae2;
+    }
+
+    .header-cta {
+        padding: 10px 12px;
+        font-size: 11px;
+    }
+
+    .store-footer {
+        flex-wrap: wrap;
+        padding: 24px 20px;
+    }
+
+    .store-footer p {
+        order: 3;
+        width: 100%;
+    }
+}

@@ -1,0 +1,242 @@
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.ProductServices
+@using Application.Services.ReplenishmentServices
+@inject IProductService ProductService
+@inject IReplenishmentService ReplenishmentService
+@inject ISnackbar Snackbar
+@inject ILogger<AddReplenishment> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>Add Replenishment</TitleContent>
+    <DialogContent>
+        <EditForm Model="@replenishment" OnValidSubmit="SaveReplenishmentAsync">
+            <DataAnnotationsValidator />
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="replenishment.ReplenishmentName"
+                                  For="@(() => replenishment.ReplenishmentName)"
+                                  Label="Name"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  AutoFocus="true"
+                                  Class="dialog-input" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="replenishment.SupplierName"
+                                  For="@(() => replenishment.SupplierName)"
+                                  Label="Supplier Name"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Class="dialog-input" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="replenishment.SupplierPhone"
+                                  For="@(() => replenishment.SupplierPhone)"
+                                  Label="Supplier Phone"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  InputType="InputType.Telephone"
+                                  Class="dialog-input" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="replenishment.ReplenishmentAmount"
+                                  For="@(() => replenishment.ReplenishmentAmount)"
+                                  Label="Amount"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  InputType="InputType.Number"
+                                  Immediate="true"
+                                  Class="dialog-input" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int"
+                                     @bind-Value="replenishment.QuantityReplenished"
+                                     For="@(() => replenishment.QuantityReplenished)"
+                                     Label="Quantity"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="1"
+                                     Class="dialog-input" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="replenishment.SellingPrice"
+                                  For="@(() => replenishment.SellingPrice)"
+                                  Label="Selling Price"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  InputType="InputType.Number"
+                                  Immediate="true"
+                                  Class="dialog-input" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="replenishment.PurchasePrice"
+                                  For="@(() => replenishment.PurchasePrice)"
+                                  Label="Purchase Price"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  InputType="InputType.Number"
+                                  Immediate="true"
+                                  Class="dialog-input" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudDatePicker @bind-Date="_replenishmentDate"
+                                   Label="Replenishment Date"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   DateFormat="dd MMM yyyy"
+                                   Required="true"
+                                   Class="dialog-input" />
+                </MudItem>
+                <MudItem xs="12">
+                    @if (isLoading)
+                    {
+                        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                        <MudText Typo="Typo.caption">Loading products...</MudText>
+                    }
+                    else if (loadError)
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mb-2">
+                            Products could not be loaded. Retry before saving.
+                        </MudAlert>
+                        <MudButton OnClick="LoadProductsAsync"
+                                   Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Disabled="@isLoading">
+                            Retry loading products
+                        </MudButton>
+                    }
+                    else if (products.Count == 0)
+                    {
+                        <MudAlert Severity="Severity.Warning" Class="mb-2">
+                            No products exist yet. Add a product from the Products page before creating a replenishment.
+                            If no product categories exist, create a category first.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudSelect T="int"
+                                   @bind-Value="replenishment.ProductId"
+                                   For="@(() => replenishment.ProductId)"
+                                   Label="Product"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Required="true"
+                                   Disabled="@isLoading"
+                                   Class="dialog-input">
+                            @foreach (var product in products)
+                            {
+                                <MudSelectItem T="int" Value="@product.Id">
+                                    @product.ProductName
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                        <ValidationMessage For="@(() => replenishment.ProductId)" />
+                    }
+                </MudItem>
+            </MudGrid>
+
+            <div class="d-flex justify-end mt-4">
+                <MudButton Color="Color.Primary"
+                           ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Save"
+                           Disabled="@(!CanSave)"
+                           Class="dialog-button-save">
+                    Save
+                </MudButton>
+            </div>
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   ButtonType="ButtonType.Button"
+                   Variant="Variant.Text"
+                   Color="Color.Default"
+                   Disabled="@isSaving"
+                   Class="dialog-button-cancel">
+            Close
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private readonly AddReplenishmentDTO replenishment = new();
+    private List<GetProductDTO> products = new();
+    private DateTime? _replenishmentDate = DateTime.Today;
+    private bool isLoading;
+    private bool isSaving;
+    private bool loadError;
+
+    private bool CanSave =>
+        !isLoading
+        && !loadError
+        && !isSaving
+        && products.Count > 0
+        && replenishment.ProductId > 0
+        && decimal.TryParse(replenishment.ReplenishmentAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var replenishmentAmount)
+        && replenishmentAmount > 0
+        && replenishment.QuantityReplenished > 0
+        && decimal.TryParse(replenishment.PurchasePrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var purchasePrice)
+        && purchasePrice > 0
+        && _replenishmentDate.HasValue;
+
+    protected override Task OnInitializedAsync() => LoadProductsAsync();
+
+    private async Task LoadProductsAsync()
+    {
+        isLoading = true;
+        loadError = false;
+
+        try
+        {
+            products = await ProductService.GetAllProductAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load products for replenishment.");
+            loadError = true;
+            Snackbar.Add("Could not load products. Please retry.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveReplenishmentAsync()
+    {
+        if (!CanSave || _replenishmentDate is null)
+            return;
+
+        if (!decimal.TryParse(replenishment.PurchasePrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var purchasePrice))
+            return;
+
+        isSaving = true;
+        replenishment.ReplenishmentDate = _replenishmentDate.Value;
+        replenishment.TotalPurchasePrice = (purchasePrice * replenishment.QuantityReplenished).ToString(CultureInfo.InvariantCulture);
+        replenishment.DateAdded = DateTime.Now;
+        replenishment.Status = "Active";
+
+        try
+        {
+            await ReplenishmentService.AddReplenishmentAsync(replenishment);
+            Snackbar.Add("Replenishment added successfully.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to add replenishment.");
+            Snackbar.Add("Could not add the replenishment.", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

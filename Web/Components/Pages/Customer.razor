@@ -1,0 +1,126 @@
+@page "/Customer"
+@using Application.Services.CustomerServices
+@using Application.DTOs
+@rendermode InteractiveServer
+@inject IDialogService DialogService
+@inject ICustomerService CustomerService
+
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudDataGrid T="GetCustomerDTO" MultiSelection="true" Items="@customers" SortMode="SortMode.Multiple" Filterable="true" QuickFilter="@_quickFilter"
+            Hideable="true">
+            
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Customers</MudText>
+                <MudSpacer />
+                <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="d-none d-md-flex">
+                  <MudTextField 
+                    @bind-Value="_searchString" 
+                    Placeholder="Search" 
+                    Adornment="Adornment.Start" 
+                    Immediate="true"
+                    AdornmentIcon="@Icons.Material.Filled.Search" 
+                    IconSize="Size.Medium" 
+                    Variant="Variant.Outlined"
+                    Margin="Margin.Dense"
+                    Class="mt-1 w-100">
+                  </MudTextField>
+                </MudContainer>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@OpenDialogAsync">
+                    <MudIcon Icon="@Icons.Material.Filled.Add" Class="me-1" />
+                    Add Customer
+                </MudButton>
+                
+            </ToolBarContent>
+
+            <Columns>
+                <SelectColumn T="GetCustomerDTO" />
+                <PropertyColumn Property="x => x.Id" Title="Nr" Sortable="true" Filterable="false" />
+                <PropertyColumn Property="x => x.CustomerName" />
+                <PropertyColumn Property="x => x.Email" />
+                <PropertyColumn Property="x => x.PhoneNumber" />
+                <PropertyColumn Property="x => x.UserAdded" />
+
+                  <TemplateColumn Title="Status">
+                    <CellTemplate>
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Variant="Variant.Filled"
+                                 Color="@GetStatusColor(context.Item.Status)">
+                                 @context.Item.Status
+                        </MudChip>
+                    </CellTemplate>
+                 </TemplateColumn>
+                 
+                  
+            </Columns>
+
+            <PagerContent>
+                <MudDataGridPager T="GetCustomerDTO" />
+            </PagerContent>
+
+        </MudDataGrid>
+</MudContainer>
+
+@code
+{
+        private string _searchString = string.Empty;
+
+        private static Color GetStatusColor(string status) => status switch
+        {
+            "Active" => Color.Success,
+            "Inactive" => Color.Error,
+            _ => Color.Default
+        };
+
+        private Func<GetCustomerDTO, bool> _quickFilter => x =>
+        {
+            if (string.IsNullOrWhiteSpace(_searchString))
+                return true;
+
+            if (x.CustomerName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (x.Id.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (x.DateAdded.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (x.Email.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                || x.PhoneNumber.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                || x.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                return true;
+                
+            if (x.Status.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            return false;
+        };
+
+        private List<GetCustomerDTO> customers = new();
+
+        protected override async Task OnInitializedAsync()
+        {
+            customers = await CustomerService.GetAllCustomerAsync();
+        }
+
+        private async Task OpenDialogAsync()
+        {
+            var options = new DialogOptions
+            {
+                CloseButton = true,
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Medium
+            };
+            var dialog = await DialogService.ShowAsync<AddCustomer>("Add Customer", options);
+            var result = await dialog.Result;
+
+            if (result is not null && !result.Canceled)
+            {
+                customers = await CustomerService.GetAllCustomerAsync();
+            }
+        }
+
+}

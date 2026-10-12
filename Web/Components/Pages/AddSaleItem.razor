@@ -1,0 +1,324 @@
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.ProductServices
+@using Application.Services.SaleItemsServices
+@using Application.Services.SalesServices
+@inject IProductService ProductService
+@inject ISalesService SalesService
+@inject ISaleItemsService SaleItemsService
+@inject ISnackbar Snackbar
+@inject ILogger<AddSaleItem> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>Add Products to Sale</TitleContent>
+    <DialogContent>
+        @if (loadError)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-3">
+                Sales and products could not be loaded. Retry before adding items.
+            </MudAlert>
+            <MudButton OnClick="LoadDataAsync"
+                       Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       Disabled="@isLoading">
+                Retry
+            </MudButton>
+        }
+        else if (!isLoading && sales.Count == 0)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">
+                Create a sale before adding products to it.
+            </MudAlert>
+        }
+        else if (!isLoading && products.Count == 0)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">
+                There are no active products to add.
+            </MudAlert>
+        }
+
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+        }
+        else if (!loadError && sales.Count > 0 && products.Count > 0)
+        {
+            <MudGrid Spacing="3">
+                <MudItem xs="12">
+                    <MudSelect T="int?"
+                               @bind-Value="_selectedSaleId"
+                               Label="Sale / Customer"
+                               Placeholder="Choose the sale for these products"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Disabled="@isSaving"
+                               Class="dialog-input">
+                        @foreach (var sale in sales)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)sale.Id)">
+                                Sale #@sale.Id · @sale.CustomerName · @sale.SaleDate.ToString("dd MMM yyyy")
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?"
+                               Value="_selectedProductId"
+                               ValueChanged="OnProductChanged"
+                               Label="Product"
+                               Placeholder="Choose a product"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Disabled="@isSaving"
+                               Class="dialog-input">
+                        @foreach (var product in products)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)product.Id)">
+                                @product.ProductName
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudTextField T="string"
+                                  @bind-Value="_quantity"
+                                  Label="Quantity"
+                                  Placeholder="1"
+                                  InputType="InputType.Number"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Disabled="@isSaving"
+                                  Class="dialog-input" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudTextField T="string"
+                                  @bind-Value="_price"
+                                  Label="Unit Price"
+                                  Placeholder="0.00"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Disabled="@isSaving"
+                                  Class="dialog-input" />
+                </MudItem>
+                <MudItem xs="12" Class="d-flex align-center justify-end">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="AddDraftItem"
+                               Disabled="@(!CanAddItem || isSaving)">
+                        Add Product
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+
+            @if (draftItems.Count > 0)
+            {
+                <MudDivider Class="my-4" />
+                <MudText Typo="Typo.subtitle1" Class="mb-2">Items in this sale</MudText>
+                <MudTable T="DraftSaleItem" Items="@draftItems" Dense="true" Hover="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Product</MudTh>
+                        <MudTh>Unit Price</MudTh>
+                        <MudTh>Quantity</MudTh>
+                        <MudTh class="text-right">Line Total</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Product">
+                            <MudText Typo="Typo.body2">@context.ProductName</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@context.CategoryName</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Unit Price">@context.Price</MudTd>
+                        <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
+                        <MudTd DataLabel="Line Total" Class="text-right fw-bold">@context.LineTotal</MudTd>
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           aria-label="@($"Remove {context.ProductName}")"
+                                           OnClick="@(() => RemoveDraftItem(context))"
+                                           Disabled="@isSaving" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+                <div class="d-flex justify-end align-center mt-3">
+                    <MudText Typo="Typo.subtitle1" Class="me-2">Sale total</MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Primary">@DraftTotal</MudText>
+                </div>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@isSaving"
+                   Class="dialog-button-cancel">
+            Cancel
+        </MudButton>
+        <MudButton OnClick="SaveSaleItemsAsync"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   Disabled="@(!CanSave || isSaving)"
+                   Class="dialog-button-save">
+            @(isSaving ? "Saving..." : $"Save {draftItems.Count} Items")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private List<GetSalesDTO> sales = new();
+    private List<GetProductDTO> products = new();
+    private readonly List<DraftSaleItem> draftItems = new();
+    private int? _selectedSaleId;
+    private int? _selectedProductId;
+    private string _quantity = "1";
+    private string _price = string.Empty;
+    private bool isLoading;
+    private bool isSaving;
+    private bool loadError;
+
+    private bool CanAddItem =>
+        _selectedSaleId.HasValue
+        && _selectedProductId.HasValue
+        && int.TryParse(_quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out var quantity)
+        && quantity > 0
+        && TryParsePrice(_price, out var price)
+        && price > 0;
+
+    private bool CanSave =>
+        !loadError
+        && !isLoading
+        && _selectedSaleId.HasValue
+        && draftItems.Count > 0;
+
+    private string DraftTotal =>
+        FormatAmount(draftItems.Sum(item => ParseAmount(item.LineTotal)));
+
+    protected override Task OnInitializedAsync() => LoadDataAsync();
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        loadError = false;
+
+        try
+        {
+            var loadedSales = await SalesService.GetAllSalesAsync();
+            var loadedProducts = await ProductService.GetAllProductAsync();
+            sales = loadedSales;
+            products = loadedProducts
+                .Where(product => string.Equals(product.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load sales or products for a sale item.");
+            loadError = true;
+            Snackbar.Add("Could not load sales and products.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Task OnProductChanged(int? productId)
+    {
+        _selectedProductId = productId;
+        _price = products.FirstOrDefault(product => product.Id == productId)?.ProductPrice ?? string.Empty;
+        return Task.CompletedTask;
+    }
+
+    private void AddDraftItem()
+    {
+        if (!CanAddItem || !_selectedProductId.HasValue
+            || !int.TryParse(_quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out var quantity)
+            || !TryParsePrice(_price, out var price))
+        {
+            Snackbar.Add("Select a product and enter a valid positive quantity and price.", Severity.Warning);
+            return;
+        }
+
+        var product = products.First(product => product.Id == _selectedProductId.Value);
+        var normalizedPrice = price.ToString(CultureInfo.InvariantCulture);
+        var lineTotal = (price * quantity).ToString(CultureInfo.InvariantCulture);
+        draftItems.Add(new DraftSaleItem(
+            product.Id,
+            product.ProductName,
+            product.ProductCategoryName,
+            normalizedPrice,
+            quantity.ToString(CultureInfo.InvariantCulture),
+            lineTotal));
+
+        _selectedProductId = null;
+        _price = string.Empty;
+        _quantity = "1";
+    }
+
+    private void RemoveDraftItem(DraftSaleItem item) => draftItems.Remove(item);
+
+    private async Task SaveSaleItemsAsync()
+    {
+        if (!CanSave || !_selectedSaleId.HasValue)
+            return;
+
+        isSaving = true;
+        var selectedSale = sales.First(sale => sale.Id == _selectedSaleId.Value);
+        var saleItems = draftItems.Select(item => new AddSaleItemsDTO
+        {
+            SaleItemName = item.ProductName,
+            SaleItemPrice = item.Price,
+            SaleItemQuantity = item.Quantity,
+            TotalSaleItemPrice = item.LineTotal,
+            SaleItemCategory = item.CategoryName,
+            SalesId = _selectedSaleId.Value,
+            ProductId = item.ProductId,
+            UserAdded = selectedSale.UserAdded,
+            Status = "Active"
+        }).ToList();
+
+        try
+        {
+            await SaleItemsService.AddSaleItemsAsync(saleItems);
+            Snackbar.Add($"{saleItems.Count} product(s) added to sale #{_selectedSaleId.Value}.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to save sale items for sale {SaleId}.", _selectedSaleId);
+            Snackbar.Add("Could not save the sale items. No items were added.", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private static bool TryParsePrice(string value, out decimal price) =>
+        decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out price)
+        || decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out price);
+
+    private static decimal ParseAmount(string value) =>
+        decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount)
+            ? amount
+            : 0m;
+
+    private static string FormatAmount(decimal amount) =>
+        amount.ToString("N2", CultureInfo.CurrentCulture);
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private sealed record DraftSaleItem(
+        int ProductId,
+        string ProductName,
+        string CategoryName,
+        string Price,
+        string Quantity,
+        string LineTotal);
+}

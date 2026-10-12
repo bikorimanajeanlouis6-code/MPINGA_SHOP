@@ -1,0 +1,90 @@
+C:\Users\hp\source\repos\MPINGA SHOP\Core\Application\bin\Debug\net10.0\Application.deps.json
+C:\Users\hp\source\repos\MPINGA SHOP\Core\Application\bin\Debug\net10.0\Application.dll
+C:\Users\hp\source\repos\MPINGA SHOP\Core\Application\bin\Debug\net10.0\Application.pdb
+C:\Users\hp\source\repos\MPINGA SHOP\Core\Application\bin\Debug\net10.0\Domain.dll
+C:\Users\hp\source\repos\MPINGA SHOP\Core\Application\bin\Debug\net10.0\Domain.pdb
+C:\Users\hp\source\repos\MPINGA SHOP\Core\Application\obj\Debug\net10.0\Application.csproj.AssemblyReference.cache
+C:\Users\hp\source\repos\MPINGA SHOP\Core\Application\obj\Debug\net10.0\Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\hp\source\repos\MPINGA SHOP\Core\Application\obj\Debug\net10.0\Application.AssemblyInfoInputs.cache
+C:\Users\hp\source\repos\MPINGA SHOP\Core\Application\obj\Debug\net10.0\Application.AssemblyInfo.cs
+C:\Users\hp\source\repos\MPINGA SHOP\Core\Application\obj\Debug\net10.0\Application.csproj.CoreCompileInputs.cache
+C:\Users\hp\source\repos\MPINGA SHOP\Core\Application\obj\Debug\net10.0\Applicat.44B5EDA2.Up2Date
+C:\Users\hp\source\repos\MPINGA SHOP\Core\Application\obj\Debug\net10.0\Application.dll
+C:\Users\hp\source\repos\MPINGA SHOP\Core\Application\obj\Debug\net10.0\refint\Application.dll
+C:\Users\hp\source\repos\MPINGA SHOP\Core\Application\obj\Debug\net10.0\Application.pdb
+C:\Users\hp\source\repos\MPINGA SHOP\Core\Application\obj\Debug\net10.0\ref\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\bin\Debug\net10.0\Application.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\bin\Debug\net10.0\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\bin\Debug\net10.0\Application.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\bin\Debug\net10.0\Domain.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\bin\Debug\net10.0\Domain.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Debug\net10.0\Application.csproj.AssemblyReference.cache
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Debug\net10.0\Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Debug\net10.0\Application.AssemblyInfoInputs.cache
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Debug\net10.0\Application.AssemblyInfo.cs
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Debug\net10.0\Application.csproj.CoreCompileInputs.cache
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Debug\net10.0\Applicat.44B5EDA2.Up2Date
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Debug\net10.0\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Debug\net10.0\refint\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Debug\net10.0\Application.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Debug\net10.0\ref\Application.dll
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\customer-build\Application.deps.json
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\customer-build\Application.dll
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\customer-build\Application.pdb
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\remove-customer-build\Application.deps.json
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\remove-customer-build\Application.dll
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\remove-customer-build\Application.pdb
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\stock-build\Application.deps.json
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\stock-build\Application.dll
+C:\Users\hp\.copilot\session-state\22cae66e-4d23-4025-a2b6-56afd8aaa443\stock-build\Application.pdb
+C:\Users\hp\AppData\Local\Temp\mpingashop-build\Debug\net10.0\Application.deps.json
+C:\Users\hp\AppData\Local\Temp\mpingashop-build\Debug\net10.0\Application.dll
+C:\Users\hp\AppData\Local\Temp\mpingashop-build\Debug\net10.0\Application.pdb
+C:\Users\hp\AppData\Local\Temp\mpinga-dialog-verify\bin\Debug\net10.0\Application.deps.json
+C:\Users\hp\AppData\Local\Temp\mpinga-dialog-verify\bin\Debug\net10.0\Application.dll
+C:\Users\hp\AppData\Local\Temp\mpinga-dialog-verify\bin\Debug\net10.0\Application.pdb
+C:\Users\hp\AppData\Local\Temp\mpinga-build-check\Debug\net10.0\Application.deps.json
+C:\Users\hp\AppData\Local\Temp\mpinga-build-check\Debug\net10.0\Application.dll
+C:\Users\hp\AppData\Local\Temp\mpinga-build-check\Debug\net10.0\Application.pdb
+C:\Users\hp\AppData\Local\Temp\mpinga-build-expenses\Debug\net10.0\Application.deps.json
+C:\Users\hp\AppData\Local\Temp\mpinga-build-expenses\Debug\net10.0\Application.dll
+C:\Users\hp\AppData\Local\Temp\mpinga-build-expenses\Debug\net10.0\Application.pdb
+C:\Users\hp\AppData\Local\Temp\mpinga-build-expenses-final\Debug\net10.0\Application.deps.json
+C:\Users\hp\AppData\Local\Temp\mpinga-build-expenses-final\Debug\net10.0\Application.dll
+C:\Users\hp\AppData\Local\Temp\mpinga-build-expenses-final\Debug\net10.0\Application.pdb
+C:\Users\hp\AppData\Local\Temp\mpinga-build-add-expense\Debug\net10.0\Application.deps.json
+C:\Users\hp\AppData\Local\Temp\mpinga-build-add-expense\Debug\net10.0\Application.dll
+C:\Users\hp\AppData\Local\Temp\mpinga-build-add-expense\Debug\net10.0\Application.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\buildcheck\Application.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\buildcheck\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\buildcheck\Application.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-type-buildcheck\Application.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-type-buildcheck\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-type-buildcheck\Application.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\required-fields-buildcheck\Application.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\required-fields-buildcheck\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\required-fields-buildcheck\Application.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-form-buildcheck\Application.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-form-buildcheck\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-form-buildcheck\Application.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-type-select-buildcheck\Application.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-type-select-buildcheck\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\expense-type-select-buildcheck\Application.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\remove-shop-buildcheck\Application.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\remove-shop-buildcheck\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\remove-shop-buildcheck\Application.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-buildcheck\Application.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-buildcheck\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-buildcheck\Application.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-ui-check\Application.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-ui-check\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-ui-check\Application.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\supplier-expense-buildcheck\Application.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\supplier-expense-buildcheck\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\supplier-expense-buildcheck\Application.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\forms-fix-buildcheck\Application.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\forms-fix-buildcheck\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\forms-fix-buildcheck\Application.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-compile-fix\Application.deps.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-compile-fix\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-compile-fix\Application.pdb

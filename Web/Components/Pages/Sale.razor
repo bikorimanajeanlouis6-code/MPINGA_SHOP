@@ -1,0 +1,93 @@
+@page "/Sales"
+@using Application.DTOs
+@using Application.Services.SalesServices
+@rendermode InteractiveServer
+@inject ISalesService SalesService
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudDataGrid T="GetSalesDTO"
+                 Items="@sales"
+                 SortMode="SortMode.Multiple"
+                 Filterable="true"
+                 QuickFilter="@QuickFilter"
+                 Dense="true"
+                 Hover="true"
+                 Elevation="1">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Sales</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString"
+                          Placeholder="Search sales"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="me-3" />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenAddSaleAsync">
+                Add Sale
+            </MudButton>
+        </ToolBarContent>
+
+        <Columns>
+            <PropertyColumn Property="sale => sale.CustomerName" Title="Customer" />
+            <PropertyColumn Property="sale => sale.TotalConsumed" Title="Total Consumed" />
+            <PropertyColumn Property="sale => sale.Balance" Title="Balance" />
+            <PropertyColumn Property="sale => sale.TotalPaid" Title="Total Paid" />
+            <TemplateColumn Title="Sale Date">
+                <CellTemplate>
+                    @context.Item.SaleDate.ToString("dd MMM yyyy")
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="sale => sale.UserAdded" Title="User Added" />
+        </Columns>
+
+        <PagerContent>
+            <MudDataGridPager T="GetSalesDTO" />
+        </PagerContent>
+    </MudDataGrid>
+</MudContainer>
+
+@code {
+    private string _searchString = string.Empty;
+    private List<GetSalesDTO> sales = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        sales = await SalesService.GetAllSalesAsync();
+    }
+
+    private Func<GetSalesDTO, bool> QuickFilter => sale =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        return sale.CustomerName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || sale.TotalConsumed.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || sale.Balance.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || sale.TotalPaid.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || sale.SaleDate.ToString("dd MMM yyyy").Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || sale.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    };
+
+    private async Task OpenAddSaleAsync()
+    {
+        var dialog = await DialogService.ShowAsync<AddSale>(
+            "Add Sale",
+            new DialogOptions
+            {
+                CloseButton = true,
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true
+            });
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+            sales = await SalesService.GetAllSalesAsync();
+    }
+}

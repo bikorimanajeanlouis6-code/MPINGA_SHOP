@@ -1,0 +1,131 @@
+@page "/SaleItems"
+@using Application.DTOs
+@using Application.Services.SaleItemsServices
+@rendermode InteractiveServer
+@inject ISaleItemsService SaleItemsService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ILogger<SaleItem> Logger
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudDataGrid T="GetSaleItemsDTO"
+                     Items="@saleItems"
+                     SortMode="SortMode.Multiple"
+                     Filterable="true"
+                     QuickFilter="@QuickFilter"
+                     Dense="true"
+                     Hover="true">
+            <ToolBarContent>
+                <div>
+                    <MudText Typo="Typo.h6">Sale Items</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Product lines recorded against customer sales
+                    </MudText>
+                </div>
+                <MudSpacer />
+                <MudTextField @bind-Value="_searchString"
+                              Placeholder="Search sale items"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Class="me-3" />
+                <MudButton Variant="Variant.Filled"
+                           ButtonType="ButtonType.Button"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.AddShoppingCart"
+                           OnClick="@OpenAddSaleItemAsync"
+                           Disabled="@isOpeningDialog">
+                    @(isOpeningDialog ? "Opening..." : "Add Items to Sale")
+                </MudButton>
+            </ToolBarContent>
+
+            <Columns>
+                <TemplateColumn Title="Sale Item" Sortable="true">
+                    <CellTemplate>
+                        <div>
+                            <MudText Typo="Typo.body2" Class="fw-bold">@context.Item.SaleItemName</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Item.SaleItemCategory</MudText>
+                        </div>
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="item => item.CustomerName" Title="Customer" />
+                <TemplateColumn Title="Item Price">
+                    <CellTemplate>@context.Item.SaleItemPrice</CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Quantity">
+                    <CellTemplate>@context.Item.SaleItemQuantity</CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Total Item Price">
+                    <CellTemplate>
+                        <MudText Typo="Typo.body2" Class="fw-bold">@context.Item.TotalSaleItemPrice</MudText>
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="item => item.UserAdded" Title="User Added" />
+            </Columns>
+
+            <PagerContent>
+                <MudDataGridPager T="GetSaleItemsDTO" />
+            </PagerContent>
+        </MudDataGrid>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private string _searchString = string.Empty;
+    private List<GetSaleItemsDTO> saleItems = new();
+    private bool isOpeningDialog;
+
+    protected override async Task OnInitializedAsync()
+    {
+        saleItems = await SaleItemsService.GetAllSaleItemsAsync();
+    }
+
+    private Func<GetSaleItemsDTO, bool> QuickFilter => item =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        return item.SaleItemName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || item.CustomerName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || item.SaleItemPrice.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || item.SaleItemQuantity.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || item.TotalSaleItemPrice.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || item.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    };
+
+    private async Task OpenAddSaleItemAsync()
+    {
+        if (isOpeningDialog)
+            return;
+
+        isOpeningDialog = true;
+        try
+        {
+            var dialog = await DialogService.ShowAsync<AddSaleItem>(
+                "Add Items to Sale",
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Large,
+                    FullWidth = true
+                });
+            var result = await dialog.Result;
+
+            if (result is not null && !result.Canceled)
+                saleItems = await SaleItemsService.GetAllSaleItemsAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open or complete the add-sale-items dialog.");
+            Snackbar.Add("Could not open the add-items dialog. Please try again.", Severity.Error);
+        }
+        finally
+        {
+            isOpeningDialog = false;
+        }
+    }
+}
