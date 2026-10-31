@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Infrastructure\\Infrastructure.csproj": {}
+    "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Infrastructure\\Infrastructure.csproj": {}
   },
   "projects": {
-    "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Application\\Application.csproj": {
+    "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Application\\Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Application\\Application.csproj",
+        "projectUniqueName": "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Application\\Application.csproj",
         "projectName": "Application",
-        "projectPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Application\\Application.csproj",
+        "projectPath": "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Application\\Application.csproj",
         "packagesPath": "C:\\Users\\hp\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Application\\obj\\",
+        "outputPath": "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Application\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\hp\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -29,8 +29,8 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\Domain.csproj": {
-                "projectPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\Domain.csproj"
+              "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\Domain.csproj": {
+                "projectPath": "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\Domain.csproj"
               }
             }
           }
@@ -355,14 +355,14 @@
         }
       }
     },
-    "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\Domain.csproj": {
+    "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\Domain.csproj",
+        "projectUniqueName": "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\Domain.csproj",
         "projectName": "Domain",
-        "projectPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\Domain.csproj",
+        "projectPath": "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\Domain.csproj",
         "packagesPath": "C:\\Users\\hp\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\obj\\",
+        "outputPath": "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\hp\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -692,14 +692,14 @@
         }
       }
     },
-    "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Infrastructure\\Infrastructure.csproj": {
+    "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Infrastructure\\Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Infrastructure\\Infrastructure.csproj",
+        "projectUniqueName": "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Infrastructure\\Infrastructure.csproj",
         "projectName": "Infrastructure",
-        "projectPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Infrastructure\\Infrastructure.csproj",
+        "projectPath": "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Infrastructure\\Infrastructure.csproj",
         "packagesPath": "C:\\Users\\hp\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Infrastructure\\obj\\",
+        "outputPath": "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\hp\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -717,11 +717,11 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Application\\Application.csproj": {
-                "projectPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Application\\Application.csproj"
+              "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Application\\Application.csproj": {
+                "projectPath": "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Application\\Application.csproj"
               },
-              "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\Domain.csproj": {
-                "projectPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\Domain.csproj"
+              "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\Domain.csproj": {
+                "projectPath": "c:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Domain\\Domain.csproj"
               }
             }
           }
