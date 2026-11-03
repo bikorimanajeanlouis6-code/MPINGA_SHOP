@@ -20,5 +20,8 @@ namespace Application.Services.ProductServices
 
         public Task AddProductAsync(AddProductDTO product) =>
             _productRepository.AddProductAsync(product);
+
+        public Task UpdateProductAsync(AddProductDTO product) =>
+            _productRepository.UpdateProductAsync(product);
     }
 }

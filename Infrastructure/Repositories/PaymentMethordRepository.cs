@@ -17,7 +17,10 @@ namespace Infrastructure.Repositories
 
         public async Task<List<GetPaymentMethordDTO>> GetAllPaymentMethordAsync()
         {
-            var entities = await _dbcontext.PaymentMethods.AsNoTracking().ToListAsync();
+            var entities = await _dbcontext.PaymentMethods
+                .AsNoTracking()
+                .OrderByDescending(paymentMethod => paymentMethod.Id)
+                .ToListAsync();
             return entities.Select(ToDto).ToList();
         }
 

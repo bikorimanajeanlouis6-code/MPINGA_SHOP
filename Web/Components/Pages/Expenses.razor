@@ -1,6 +1,7 @@
 @page "/Expenses"
 @using Application.DTOs
 @using Application.Services.ExpenseServices
+@using Web.Formatting
 @rendermode InteractiveServer
 @inject IExpenseService ExpenseService
 @inject IDialogService DialogService
@@ -33,11 +34,15 @@
         </ToolBarContent>
 
         <Columns>
+            <TemplateColumn Title="Reference">
+                <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Expense, context.Item.Id)</CellTemplate>
+            </TemplateColumn>
             <PropertyColumn Property="expense => expense.ExpenseName" Title="Expense Name" />
             <PropertyColumn Property="expense => expense.ExpenseTypeName" Title="Expense Type" />
+            <PropertyColumn Property="expense => expense.AccountName" Title="Account" />
             <TemplateColumn Title="Expense Amount">
                 <CellTemplate>
-                    @context.Item.ExpenseAmount.ToString("C2")
+                    @($"{MoneyFormatter.Format(context.Item.ExpenseAmount)} RWF")
                 </CellTemplate>
             </TemplateColumn>
             <TemplateColumn Title="Expense Date">
@@ -68,8 +73,10 @@
         if (string.IsNullOrWhiteSpace(_searchString))
             return true;
 
-        return expense.ExpenseName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+        return EntityReferenceFormatter.Format(EntityReferenceType.Expense, expense.Id).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || expense.ExpenseName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || expense.ExpenseTypeName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || expense.AccountName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || expense.ExpenseAmount.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || expense.ExpenseDate.ToString("dd MMM yyyy").Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || expense.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase);

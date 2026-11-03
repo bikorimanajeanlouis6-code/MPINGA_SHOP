@@ -1,0 +1,101 @@
+@page "/account/login"
+@layout Layout.AuthLayout
+
+@using MudBlazor
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Login</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudCard Elevation="3">
+        <MudCardContent>
+            <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6">MPINGA SHOP</MudText>
+            <MudText Typo="Typo.h6" Align="Align.Center" Color="Color.Secondary" Class="mb-6">Sign in to your account</MudText>
+
+            @if (!string.IsNullOrEmpty(Error))
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-4">@Error</MudAlert>
+            }
+
+            <form method="post" action="/api/account/login">
+                <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+                <AntiforgeryToken />
+
+                <MudTextField @bind-Value="email"
+                              Label="Email"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Email"
+                              FullWidth="true"
+                              Margin="Margin.Dense"
+                              Required="true"
+                              RequiredError="Email is required"
+                              Class="mb-3"
+                              UserAttributes="@(new Dictionary<string, object> { { "name", "email" } })" />
+
+                <MudTextField @bind-Value="password"
+                              Label="Password"
+                              Variant="Variant.Outlined"
+                              InputType="@(showPassword ? InputType.Text : InputType.Password)"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@(showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                              OnAdornmentClick="TogglePasswordVisibility"
+                              FullWidth="true"
+                              Margin="Margin.Dense"
+                              Required="true"
+                              RequiredError="Password is required"
+                              Class="mb-3"
+                              UserAttributes="@(new Dictionary<string, object> { { "name", "password" } })" />
+
+                <MudCheckBox @bind-Value="rememberMe"
+                             Label="Remember me"
+                             Class="mb-4"
+                             UserAttributes="@(new Dictionary<string, object>
+                              { 
+                              { "name", "rememberMe" },
+                              { "Value", "true" } 
+                              })" />
+
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           FullWidth="true"
+                           Size="Size.Large"
+                           Class="mb-3">
+                    <MudText>Sign In</MudText>
+                </MudButton>
+            </form>
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    private string email = "";
+    private string password = "";
+    private bool showPassword = false;
+    private bool rememberMe = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+}

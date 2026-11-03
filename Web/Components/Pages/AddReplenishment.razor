@@ -1,7 +1,12 @@
 @using System.Globalization
 @using Application.DTOs
+@using Application.Services.AccountServices
+@using Application.Services.PaymentMethordServices
 @using Application.Services.ProductServices
 @using Application.Services.ReplenishmentServices
+@using Web.Formatting
+@inject IAccountService AccountService
+@inject IPaymentMethordService PaymentMethodService
 @inject IProductService ProductService
 @inject IReplenishmentService ReplenishmentService
 @inject ISnackbar Snackbar
@@ -40,16 +45,6 @@
                                   Class="dialog-input" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="replenishment.ReplenishmentAmount"
-                                  For="@(() => replenishment.ReplenishmentAmount)"
-                                  Label="Amount"
-                                  Variant="Variant.Outlined"
-                                  Margin="Margin.Dense"
-                                  InputType="InputType.Number"
-                                  Immediate="true"
-                                  Class="dialog-input" />
-                </MudItem>
-                <MudItem xs="12" sm="6">
                     <MudNumericField T="int"
                                      @bind-Value="replenishment.QuantityReplenished"
                                      For="@(() => replenishment.QuantityReplenished)"
@@ -60,9 +55,21 @@
                                      Class="dialog-input" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
+                    <MudSelect T="string"
+                               @bind-Value="replenishment.Unit"
+                               Label="Unit"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Required="true"
+                               Class="dialog-input">
+                        <MudSelectItem T="string" Value="@KilogramUnit">Kilograms (kg)</MudSelectItem>
+                        <MudSelectItem T="string" Value="@PieceUnit">Pieces (pcs)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="replenishment.SellingPrice"
                                   For="@(() => replenishment.SellingPrice)"
-                                  Label="Selling Price"
+                                  Label="Selling Price (RWF)"
                                   Variant="Variant.Outlined"
                                   Margin="Margin.Dense"
                                   InputType="InputType.Number"
@@ -72,13 +79,85 @@
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="replenishment.PurchasePrice"
                                   For="@(() => replenishment.PurchasePrice)"
-                                  Label="Purchase Price"
+                                  Label="Purchase Price per unit (RWF)"
                                   Variant="Variant.Outlined"
                                   Margin="Margin.Dense"
                                   InputType="InputType.Number"
                                   Immediate="true"
                                   Class="dialog-input" />
                 </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Value="@CalculatedTotal.ToString("0.##", CultureInfo.InvariantCulture)"
+                                  Label="Calculated Amount (RWF)"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  ReadOnly="true"
+                                  Class="dialog-input" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudNumericField T="decimal"
+                                     @bind-Value="_paidNow"
+                                     Label="Amount paid to supplier now (RWF)"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0"
+                                     Max="@CalculatedTotal"
+                                     Disabled="@isSaving"
+                                     HelperText="Leave at zero if the supplier will be paid later." />
+                </MudItem>
+                @if (_paidNow > 0)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int?"
+                                   @bind-Value="_accountId"
+                                   Label="Pay from account"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Required="true"
+                                   RequiredError="Select the account used for this payment."
+                                   Disabled="@(accounts.Count == 0 || paymentOptionsError || isSaving)"
+                                   Class="dialog-input">
+                            @foreach (var account in accounts)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)account.Id)">
+                                    @($"{account.AccountName} (Balance: {MoneyFormatter.Format(account.Balance)} RWF)")
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int?"
+                                   @bind-Value="_paymentMethodId"
+                                   Label="Payment method"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Required="true"
+                                   RequiredError="Select a payment method."
+                                   Disabled="@(paymentMethods.Count == 0 || paymentOptionsError || isSaving)"
+                                   Class="dialog-input">
+                            @foreach (var method in paymentMethods)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)method.Id)">
+                                    @method.PaymentMethodName
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                }
+                @if (paymentOptionsError)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Warning" Class="mb-2">
+                            Payment options could not be loaded. A replenishment without an initial payment can still be saved; retry before recording a payment.
+                        </MudAlert>
+                        <MudButton OnClick="LoadProductsAsync"
+                                   Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Disabled="@isLoading">
+                            Retry loading payment options
+                        </MudButton>
+                    </MudItem>
+                }
                 <MudItem xs="12">
                     <MudDatePicker @bind-Date="_replenishmentDate"
                                    Label="Replenishment Date"
@@ -146,6 +225,10 @@
                     Save
                 </MudButton>
             </div>
+            @if (!CanSave && !isLoading && !loadError && !isSaving && !string.IsNullOrWhiteSpace(SaveBlockedReason))
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-2">@SaveBlockedReason</MudAlert>
+            }
         </EditForm>
     </DialogContent>
     <DialogActions>
@@ -161,15 +244,23 @@
 </MudDialog>
 
 @code {
+    private const string KilogramUnit = "kg";
+    private const string PieceUnit = "pcs";
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
     private readonly AddReplenishmentDTO replenishment = new();
     private List<GetProductDTO> products = new();
+    private List<GetAccountDTO> accounts = new();
+    private List<GetPaymentMethordDTO> paymentMethods = new();
+    private decimal _paidNow;
+    private int? _accountId;
+    private int? _paymentMethodId;
     private DateTime? _replenishmentDate = DateTime.Today;
     private bool isLoading;
     private bool isSaving;
     private bool loadError;
+    private bool paymentOptionsError;
 
     private bool CanSave =>
         !isLoading
@@ -177,12 +268,56 @@
         && !isSaving
         && products.Count > 0
         && replenishment.ProductId > 0
-        && decimal.TryParse(replenishment.ReplenishmentAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var replenishmentAmount)
-        && replenishmentAmount > 0
+        && replenishment.Unit is KilogramUnit or PieceUnit
         && replenishment.QuantityReplenished > 0
         && decimal.TryParse(replenishment.PurchasePrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var purchasePrice)
         && purchasePrice > 0
-        && _replenishmentDate.HasValue;
+        && _replenishmentDate.HasValue
+        && _paidNow >= 0
+        && _paidNow <= CalculatedTotal
+        && (_paidNow == 0 || (!paymentOptionsError
+            && accounts.Count > 0
+            && paymentMethods.Count > 0
+            && _accountId.HasValue
+            && _paymentMethodId.HasValue));
+
+    private string? SaveBlockedReason
+    {
+        get
+        {
+            if (products.Count == 0)
+                return "Add or load a product before saving.";
+            if (replenishment.ProductId <= 0)
+                return "Select a product.";
+            if (replenishment.Unit is not (KilogramUnit or PieceUnit))
+                return "Select a unit.";
+            if (replenishment.QuantityReplenished <= 0)
+                return "Enter a quantity greater than zero.";
+            if (!decimal.TryParse(replenishment.PurchasePrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var purchasePrice)
+                || purchasePrice <= 0)
+                return "Enter a purchase price greater than zero.";
+            if (!_replenishmentDate.HasValue)
+                return "Select a replenishment date.";
+            if (_paidNow < 0 || _paidNow > CalculatedTotal)
+                return "The amount paid now must be between zero and the replenishment total.";
+            if (_paidNow > 0 && paymentOptionsError)
+                return "Retry loading payment options or set the amount paid now to zero.";
+            if (_paidNow > 0 && accounts.Count == 0)
+                return "Add an active account before recording an initial supplier payment.";
+            if (_paidNow > 0 && paymentMethods.Count == 0)
+                return "Add an active payment method before recording an initial supplier payment.";
+            if (_paidNow > 0 && !_accountId.HasValue)
+                return "Select the account used for the supplier payment.";
+            if (_paidNow > 0 && !_paymentMethodId.HasValue)
+                return "Select a payment method.";
+            return null;
+        }
+    }
+
+    private decimal CalculatedTotal =>
+        decimal.TryParse(replenishment.PurchasePrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var purchasePrice)
+            ? purchasePrice * replenishment.QuantityReplenished
+            : 0m;
 
     protected override Task OnInitializedAsync() => LoadProductsAsync();
 
@@ -200,6 +335,24 @@
             Logger.LogError(exception, "Failed to load products for replenishment.");
             loadError = true;
             Snackbar.Add("Could not load products. Please retry.", Severity.Error);
+        }
+        try
+        {
+            accounts = (await AccountService.GetAllAccountAsync())
+                .Where(account => string.Equals(account.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(account => account.AccountName)
+                .ToList();
+            paymentMethods = (await PaymentMethodService.GetAllPaymentMethordAsync())
+                .Where(method => string.Equals(method.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(method => method.PaymentMethodName)
+                .ToList();
+            paymentOptionsError = false;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load account or payment method options for replenishment.");
+            paymentOptionsError = true;
+            Snackbar.Add("Could not load supplier payment options.", Severity.Error);
         }
         finally
         {
@@ -219,7 +372,13 @@
 
         isSaving = true;
         replenishment.ReplenishmentDate = _replenishmentDate.Value;
-        replenishment.TotalPurchasePrice = (purchasePrice * replenishment.QuantityReplenished).ToString(CultureInfo.InvariantCulture);
+        replenishment.Unit = replenishment.Unit.Trim().ToLowerInvariant();
+        var total = purchasePrice * replenishment.QuantityReplenished;
+        replenishment.ReplenishmentAmount = total.ToString(CultureInfo.InvariantCulture);
+        replenishment.TotalPurchasePrice = replenishment.ReplenishmentAmount;
+        replenishment.PaidAmount = _paidNow;
+        replenishment.AccountId = _paidNow > 0 ? _accountId : null;
+        replenishment.PaymentMethodId = _paidNow > 0 ? _paymentMethodId : null;
         replenishment.DateAdded = DateTime.Now;
         replenishment.Status = "Active";
 
@@ -232,7 +391,10 @@
         catch (Exception exception)
         {
             Logger.LogError(exception, "Failed to add replenishment.");
-            Snackbar.Add("Could not add the replenishment.", Severity.Error);
+            var message = exception is ArgumentException or InvalidOperationException or KeyNotFoundException
+                ? exception.Message
+                : "Could not add the replenishment. See the application log for details.";
+            Snackbar.Add(message, Severity.Error);
         }
         finally
         {

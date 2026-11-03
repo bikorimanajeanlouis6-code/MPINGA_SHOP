@@ -13,6 +13,149 @@
     box-sizing: border-box;
 }
 
+.nav-brand {
+    display: flex;
+    justify-content: center;
+    padding: 18px 16px;
+}
+
+.nav-brand img {
+    display: block;
+    width: 100%;
+    max-width: 220px;
+    max-height: 150px;
+    object-fit: contain;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.mpingashop-nav-menu .mud-nav-link {
+    min-height: 44px;
+    margin: 2px 8px;
+    border-radius: 6px;
+    color: #3b3b3b;
+}
+
+.mpingashop-nav-menu .mud-nav-link:hover {
+    background: #f7eeee;
+    color: #811b22;
+}
+
+.mpingashop-nav-menu .mud-nav-link.active {
+    background: #f1eeee;
+    color: #811b22;
+    font-weight: 600;
+}
+
+.mpingashop-nav-menu .mud-nav-link .mud-nav-link-icon {
+    color: #747474;
+}
+
+.mpingashop-nav-menu .mud-nav-link.active .mud-nav-link-icon,
+.mpingashop-nav-menu .mud-nav-link:hover .mud-nav-link-icon {
+    color: #811b22;
+}
+
+.customer-report-print-qr {
+    display: none;
+}
+
+.customer-report-print {
+    display: none;
+}
+
+@media print {
+    @page {
+        size: landscape;
+        margin: 12mm;
+    }
+
+    body * {
+        visibility: hidden !important;
+    }
+
+    .customer-report-print,
+    .customer-report-print * {
+        visibility: visible !important;
+    }
+
+    .customer-report-print {
+        position: absolute !important;
+        inset: 0 !important;
+        width: 100% !important;
+        display: block !important;
+        color: #222;
+        font-family: Arial, sans-serif;
+    }
+
+    .customer-report-print-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+        margin-bottom: 18px;
+    }
+
+    .customer-report-print-branding {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+    }
+
+    .customer-report-print-logo {
+        max-width: 110px;
+        max-height: 72px;
+        object-fit: contain;
+    }
+
+    .customer-report-print-header h1 {
+        margin: 0 0 8px;
+        font-size: 22px;
+    }
+
+    .customer-report-print-header p {
+        margin: 3px 0;
+        font-size: 10px;
+    }
+
+    .customer-report-print-qr {
+        display: flex !important;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+        margin-top: 12px;
+        break-inside: avoid;
+        font-size: 9px;
+    }
+
+    .customer-report-print-qr img {
+        width: 84px;
+        height: 84px;
+        image-rendering: pixelated;
+    }
+
+    .customer-report-print table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 9px;
+    }
+
+    .customer-report-print th,
+    .customer-report-print td {
+        padding: 6px;
+        border: 1px solid #cbd5d1;
+        text-align: left;
+        overflow-wrap: anywhere;
+    }
+
+    .customer-report-print th {
+        background: #edf1ee !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+}
+
 html,
 body {
     min-width: 320px;

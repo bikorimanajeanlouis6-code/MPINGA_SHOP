@@ -19,4 +19,5 @@ public class Replenishment
 /// relationship
 
     public Product Product { get; set;}
+    public ICollection<Payment> Payments { get; set; } = new List<Payment>();
 }

@@ -1,0 +1,396 @@
+@using Application.DTOs
+@using Application.Services.AccountServices
+@using Application.Services.ExpenseServices
+@using Application.Services.PaymentServices
+@using Web.Formatting
+@using Web.Reports
+@using System.Globalization
+@inject IAccountService AccountService
+@inject IPaymentService PaymentService
+@inject IExpenseService ExpenseService
+@inject ILogger<AccountDetails> Logger
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudDialog Class="account-details-dialog">
+    <TitleContent>
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h6">Account Transaction History</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @Account.AccountName · @EntityReferenceFormatter.Format(EntityReferenceType.Account, Account.Id)
+            </MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudPaper Class="pa-3 account-current-balance" Elevation="0">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Current account balance</MudText>
+                <MudText Typo="Typo.h5" Class="fw-bold">@FormatMoney(Account.Balance)</MudText>
+            </MudPaper>
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                History includes recorded payments, expenses, deposits, and opening balances. Balance changes made before transaction tracking was added cannot be reconstructed.
+            </MudAlert>
+
+            <MudPaper Class="pa-3" Outlined="true">
+                <MudStack Row="true" AlignItems="AlignItems.End" Wrap="Wrap.Wrap" Spacing="2">
+                    <MudSelect T="string"
+                               Label="Period"
+                               @bind-Value="_selectedPeriod"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Class="history-period-select">
+                        <MudSelectItem T="string" Value="@DayPeriod">Day</MudSelectItem>
+                        <MudSelectItem T="string" Value="@WeekPeriod">Week</MudSelectItem>
+                        <MudSelectItem T="string" Value="@MonthPeriod">Month</MudSelectItem>
+                    </MudSelect>
+                    <MudDatePicker @bind-Date="_selectedDate"
+                                   Label="Select date"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   DateFormat="dd MMM yyyy" />
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="history-period-label">
+                        @PeriodDescription
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+
+            @if (isLoading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (loadError)
+            {
+                <MudAlert Severity="Severity.Error">
+                    The account transaction history could not be loaded.
+                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="LoadHistoryAsync">Retry</MudButton>
+                </MudAlert>
+            }
+            else
+            {
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Class="pa-3 account-history-total incoming" Elevation="0">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Money In</MudText>
+                            <MudText Typo="Typo.h6" Class="fw-bold">@FormatMoney(MoneyIn)</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Class="pa-3 account-history-total outgoing" Elevation="0">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Money Out</MudText>
+                            <MudText Typo="Typo.h6" Class="fw-bold">@FormatMoney(MoneyOut)</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Class="pa-3 account-history-total movement" Elevation="0">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Net Movement</MudText>
+                            <MudText Typo="Typo.h6" Class="fw-bold">@FormatMoney(MoneyIn - MoneyOut)</MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+
+                <MudDataGrid T="AccountHistoryTransaction"
+                             Items="@FilteredTransactions"
+                             SortMode="SortMode.Multiple"
+                             Dense="true"
+                             Hover="true"
+                             Elevation="0">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.subtitle1">Transactions</MudText>
+                        <MudSpacer />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @FilteredTransactions.Count transaction(s)
+                        </MudText>
+                    </ToolBarContent>
+                    <Columns>
+                        <PropertyColumn Property="transaction => transaction.Reference" Title="Reference" />
+                        <PropertyColumn Property="transaction => transaction.Description" Title="Description" />
+                        <TemplateColumn Title="Type">
+                            <CellTemplate>
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Variant="Variant.Outlined"
+                                         Color="@(context.Item.IsIncoming ? Color.Success : Color.Warning)">
+                                    @context.Item.Type
+                                </MudChip>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Date">
+                            <CellTemplate>@context.Item.Date.ToString("dd MMM yyyy HH:mm")</CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Amount">
+                            <CellTemplate>
+                                <MudText Color="@(context.Item.IsIncoming ? Color.Success : Color.Error)"
+                                         Class="fw-bold">
+                                    @(context.Item.IsIncoming ? "+" : "−")@FormatMoney(context.Item.Amount)
+                                </MudText>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="transaction => transaction.User" Title="Recorded By" />
+                    </Columns>
+                    <NoRecordsContent>
+                        <MudText Class="pa-4" Color="Color.Secondary">
+                            No deposits, payments, or expenses have been recorded for this account.
+                        </MudText>
+                    </NoRecordsContent>
+                    <PagerContent>
+                        <MudDataGridPager T="AccountHistoryTransaction" />
+                    </PagerContent>
+                </MudDataGrid>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Print"
+                   data-pdf-print="true"
+                   OnClick="PrintHistoryAsync"
+                   Disabled="@(!CanExport)">
+            Print
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Download"
+                   OnClick="DownloadHistoryAsync"
+                   Disabled="@(!CanExport)">
+            Download PDF
+        </MudButton>
+        <MudButton Variant="Variant.Text" OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .account-details-dialog .account-current-balance,
+    .account-details-dialog .account-history-total {
+        height: 100%;
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 8px;
+    }
+
+    .account-details-dialog .account-history-total.incoming {
+        border-left: 4px solid var(--mud-palette-success);
+    }
+
+    .account-details-dialog .account-history-total.outgoing {
+        border-left: 4px solid var(--mud-palette-warning);
+    }
+
+    .account-details-dialog .account-history-total.movement {
+        border-left: 4px solid var(--mud-palette-primary);
+    }
+
+    .account-details-dialog .history-period-select {
+        min-width: 150px;
+    }
+
+    .account-details-dialog .history-period-label {
+        padding-bottom: 8px;
+    }
+</style>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public GetAccountDTO Account { get; set; } = default!;
+
+    private const string DayPeriod = "Day";
+    private const string WeekPeriod = "Week";
+    private const string MonthPeriod = "Month";
+
+    private string _selectedPeriod = MonthPeriod;
+    private DateTime? _selectedDate = DateTime.Today;
+    private List<AccountHistoryTransaction> transactions = new();
+    private bool isLoading;
+    private bool loadError;
+    private bool isExporting;
+    private bool CanExport => !isLoading && !loadError && !isExporting;
+
+    private List<AccountHistoryTransaction> FilteredTransactions
+    {
+        get
+        {
+            var (start, end) = SelectedDateRange;
+            return transactions
+                .Where(transaction => transaction.Date >= start && transaction.Date < end)
+                .OrderByDescending(transaction => transaction.Date)
+                .ToList();
+        }
+    }
+
+    private decimal MoneyIn => FilteredTransactions.Where(transaction => transaction.IsIncoming).Sum(transaction => transaction.Amount);
+    private decimal MoneyOut => FilteredTransactions.Where(transaction => !transaction.IsIncoming).Sum(transaction => transaction.Amount);
+
+    private (DateTime Start, DateTime End) SelectedDateRange
+    {
+        get
+        {
+            var date = (_selectedDate ?? DateTime.Today).Date;
+            return _selectedPeriod switch
+            {
+                WeekPeriod => GetWeekRange(date),
+                MonthPeriod => (new DateTime(date.Year, date.Month, 1),
+                    new DateTime(date.Year, date.Month, 1).AddMonths(1)),
+                _ => (date, date.AddDays(1))
+            };
+        }
+    }
+
+    private string PeriodDescription
+    {
+        get
+        {
+            var (start, end) = SelectedDateRange;
+            var lastDate = end.AddDays(-1);
+            var label = _selectedPeriod switch
+            {
+                DayPeriod => "Day",
+                WeekPeriod => "Week",
+                _ => "Month"
+            };
+            return start.Date == lastDate.Date
+                ? $"{label}: {start.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)}"
+                : $"{label}: {start.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)} – {lastDate.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)}";
+        }
+    }
+
+    protected override Task OnInitializedAsync() => LoadHistoryAsync();
+
+    private async Task LoadHistoryAsync()
+    {
+        isLoading = true;
+        loadError = false;
+
+        try
+        {
+            var deposits = await AccountService.GetAccountDepositsAsync(Account.Id);
+            var payments = await PaymentService.GetAllPaymentAsync();
+            var expenses = await ExpenseService.GetAllExpenseAsync();
+
+            transactions = deposits
+                .Select(deposit => new AccountHistoryTransaction(
+                    EntityReferenceFormatter.Format(EntityReferenceType.AccountDeposit, deposit.Id),
+                    deposit.Description,
+                    "External deposit",
+                    deposit.DateAdded,
+                    deposit.Amount,
+                    true,
+                    deposit.UserAdded))
+                .Concat(payments
+                    .Where(payment => payment.AccountId == Account.Id
+                        && string.Equals(payment.Status, "Active", StringComparison.OrdinalIgnoreCase)
+                        && (payment.SalesId.HasValue || payment.ReplenishmentId.HasValue))
+                    .Select(payment =>
+                    {
+                        var isCustomerPayment = payment.SalesId.HasValue;
+                        var linkedReference = payment.SalesId is int saleId
+                            ? EntityReferenceFormatter.Format(EntityReferenceType.Sale, saleId)
+                            : EntityReferenceFormatter.Format(EntityReferenceType.Replenishment, payment.ReplenishmentId!.Value);
+                        var description = isCustomerPayment
+                            ? $"Customer payment from {payment.CustomerName} · {linkedReference}"
+                            : $"{payment.PaymentName} · {linkedReference}";
+                        var type = isCustomerPayment ? "Customer payment" : "Supplier payment";
+
+                        return new AccountHistoryTransaction(
+                            EntityReferenceFormatter.Format(EntityReferenceType.Payment, payment.Id),
+                            description,
+                            type,
+                            payment.PaymentDate,
+                            payment.PaymentAmount,
+                            isCustomerPayment,
+                            payment.UserAdded);
+                    }))
+                .Concat(expenses
+                    .Where(expense => expense.AccountId == Account.Id
+                        && string.Equals(expense.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                    .Select(expense => new AccountHistoryTransaction(
+                        EntityReferenceFormatter.Format(EntityReferenceType.Expense, expense.Id),
+                        expense.ExpenseName,
+                        string.IsNullOrWhiteSpace(expense.ExpenseTypeName)
+                            ? "Expense"
+                            : $"Expense · {expense.ExpenseTypeName}",
+                        expense.ExpenseDate,
+                        expense.ExpenseAmount,
+                        false,
+                        expense.UserAdded)))
+                .OrderByDescending(transaction => transaction.Date)
+                .ToList();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load transaction history for account {AccountId}.", Account.Id);
+            loadError = true;
+            Snackbar.Add("Could not load account transaction history.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string FormatMoney(decimal amount) => $"{MoneyFormatter.Format(amount)} RWF";
+
+    private static (DateTime Start, DateTime End) GetWeekRange(DateTime date)
+    {
+        var daysSinceMonday = ((int)date.DayOfWeek + 6) % 7;
+        var start = date.AddDays(-daysSinceMonday);
+        return (start, start.AddDays(7));
+    }
+
+    private async Task PrintHistoryAsync()
+    {
+        if (isExporting || isLoading || loadError)
+            return;
+
+        isExporting = true;
+        try
+        {
+            var pdf = CreateHistoryPdf();
+            await JS.InvokeVoidAsync("customerReportDownloads.printPdf", Convert.ToBase64String(pdf));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not print transaction history for account {AccountId}.", Account.Id);
+            Snackbar.Add("Could not open the print dialog.", Severity.Error);
+        }
+        finally
+        {
+            isExporting = false;
+        }
+    }
+
+    private async Task DownloadHistoryAsync()
+    {
+        if (isExporting || isLoading || loadError)
+            return;
+
+        isExporting = true;
+        try
+        {
+            var pdf = CreateHistoryPdf();
+            var fileName = $"account-history-{Account.Id}-{DateTime.Today:yyyyMMdd}.pdf";
+            await JS.InvokeVoidAsync(
+                "customerReportDownloads.downloadPdf",
+                Convert.ToBase64String(pdf),
+                fileName);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not download transaction history for account {AccountId}.", Account.Id);
+            Snackbar.Add("Could not download account transaction history.", Severity.Error);
+        }
+        finally
+        {
+            isExporting = false;
+        }
+    }
+
+    private byte[] CreateHistoryPdf() => AccountHistoryPdfBuilder.CreatePdf(
+        Account.AccountName,
+        EntityReferenceFormatter.Format(EntityReferenceType.Account, Account.Id),
+        PeriodDescription,
+        Account.Balance,
+        FilteredTransactions);
+
+    private void Close() => MudDialog.Close();
+}

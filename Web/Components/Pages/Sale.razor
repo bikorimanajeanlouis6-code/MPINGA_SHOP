@@ -1,9 +1,13 @@
 @page "/Sales"
 @using Application.DTOs
+@using Application.Services.SaleItemsServices
 @using Application.Services.SalesServices
 @rendermode InteractiveServer
 @inject ISalesService SalesService
+@inject ISaleItemsService SaleItemsService
 @inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ILogger<Sale> Logger
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudDataGrid T="GetSalesDTO"
@@ -15,7 +19,7 @@
                  Hover="true"
                  Elevation="1">
         <ToolBarContent>
-            <MudText Typo="Typo.h6">Sales</MudText>
+            <MudText Typo="Typo.h6">Sales and Items</MudText>
             <MudSpacer />
             <MudTextField @bind-Value="_searchString"
                           Placeholder="Search sales"
@@ -25,16 +29,30 @@
                           Variant="Variant.Outlined"
                           Margin="Margin.Dense"
                           Class="me-3" />
-            <MudButton Variant="Variant.Filled"
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Assessment"
+                       Href="/SalesReport">
+                Report
+            </MudButton>
+            @* <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add"
                        OnClick="OpenAddSaleAsync">
                 Add Sale
-            </MudButton>
+            </MudButton> *@
         </ToolBarContent>
 
         <Columns>
+            <TemplateColumn Title="Reference">
+                <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Sale, context.Item.Id)</CellTemplate>
+            </TemplateColumn>
             <PropertyColumn Property="sale => sale.CustomerName" Title="Customer" />
+            <TemplateColumn Title="Items Sold">
+                <CellTemplate>
+                    <MudText Typo="Typo.body2">@GetSaleItemsCount(context.Item.Id)</MudText>
+                </CellTemplate>
+            </TemplateColumn>
             <PropertyColumn Property="sale => sale.TotalConsumed" Title="Total Consumed" />
             <PropertyColumn Property="sale => sale.Balance" Title="Balance" />
             <PropertyColumn Property="sale => sale.TotalPaid" Title="Total Paid" />
@@ -44,6 +62,16 @@
                 </CellTemplate>
             </TemplateColumn>
             <PropertyColumn Property="sale => sale.UserAdded" Title="User Added" />
+            <TemplateColumn Title="Details" Sortable="false" Filterable="false">
+                <CellTemplate>
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   aria-label="@($"View items for sale {context.Item.Id}")"
+                                   Disabled="@isOpeningDetails"
+                                   OnClick="@(() => OpenSaleDetailsAsync(context.Item))" />
+                </CellTemplate>
+            </TemplateColumn>
         </Columns>
 
         <PagerContent>
@@ -55,23 +83,123 @@
 @code {
     private string _searchString = string.Empty;
     private List<GetSalesDTO> sales = new();
+    private List<GetSaleItemsDTO> saleItems = new();
+    private bool isOpeningDetails;
 
     protected override async Task OnInitializedAsync()
     {
-        sales = await SalesService.GetAllSalesAsync();
+        await LoadSalesAsync();
     }
+
+    private async Task LoadSalesAsync()
+    {
+        try
+        {
+            saleItems = await SaleItemsService.GetAllSaleItemsAsync();
+            var loadedSales = await SalesService.GetAllSalesAsync();
+            sales = loadedSales
+                .Select(sale =>
+                {
+                    var activeItems = saleItems
+                        .Where(item => item.SalesId == sale.Id
+                            && string.Equals(item.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                    if (activeItems.Count == 0)
+                        return sale;
+
+                    var consumed = activeItems.Sum(item => ParseAmount(item.TotalSaleItemPrice));
+                    var paid = ParseAmount(sale.TotalPaid);
+                    return new GetSalesDTO
+                    {
+                        Id = sale.Id,
+                        CustomerName = sale.CustomerName,
+                        TotalConsumed = consumed.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        TotalPaid = sale.TotalPaid,
+                        Balance = (consumed - paid).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        SaleDate = sale.SaleDate,
+                        UserAdded = sale.UserAdded,
+                        Status = sale.Status
+                    };
+                })
+                .ToList();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load sales and their product items.");
+            Snackbar.Add("Could not load sales and product details.", Severity.Error);
+        }
+    }
+
+    private int GetSaleItemsCount(int saleId) =>
+        saleItems
+            .Where(item => item.SalesId == saleId
+                && string.Equals(item.Status, "Active", StringComparison.OrdinalIgnoreCase))
+            .Count();
+
+    private async Task OpenSaleDetailsAsync(GetSalesDTO sale)
+    {
+        if (isOpeningDetails)
+            return;
+
+        isOpeningDetails = true;
+        try
+        {
+            var parameters = new DialogParameters<ViewSaleDetails>
+            {
+                { dialog => dialog.Sale, sale }
+            };
+            await DialogService.ShowAsync<ViewSaleDetails>(
+                "Sale Details",
+                parameters,
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Large,
+                    FullWidth = true
+                });
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open details for sale {SaleId}.", sale.Id);
+            Snackbar.Add("Could not open sale item details.", Severity.Error);
+        }
+        finally
+        {
+            isOpeningDetails = false;
+        }
+    }
+
+    private static decimal ParseAmount(string? amount) =>
+        decimal.TryParse(amount, System.Globalization.NumberStyles.Number,
+            System.Globalization.CultureInfo.InvariantCulture, out var value)
+            ? value
+            : decimal.TryParse(amount, System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.CurrentCulture, out value)
+                ? value
+                : 0m;
 
     private Func<GetSalesDTO, bool> QuickFilter => sale =>
     {
         if (string.IsNullOrWhiteSpace(_searchString))
             return true;
 
-        return sale.CustomerName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+        return EntityReferenceFormatter.Format(EntityReferenceType.Sale, sale.Id).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || sale.CustomerName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || sale.TotalConsumed.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || sale.Balance.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || sale.TotalPaid.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || sale.SaleDate.ToString("dd MMM yyyy").Contains(_searchString, StringComparison.OrdinalIgnoreCase)
-            || sale.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+            || sale.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || saleItems.Any(item => item.SalesId == sale.Id
+                && string.Equals(item.Status, "Active", StringComparison.OrdinalIgnoreCase)
+                && (item.SaleItemName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                    || item.SaleItemCategory.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                    || item.SaleItemPrice.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                    || item.SaleItemQuantity.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                    || item.TotalSaleItemPrice.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                    || item.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase)));
     };
 
     private async Task OpenAddSaleAsync()
@@ -88,6 +216,6 @@
         var result = await dialog.Result;
 
         if (result is not null && !result.Canceled)
-            sales = await SalesService.GetAllSalesAsync();
+            await LoadSalesAsync();
     }
 }

@@ -1,0 +1,336 @@
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.AccountServices
+@using Application.Services.PaymentMethordServices
+@using Application.Services.PaymentServices
+@using Application.Services.ReplenishmentServices
+@using Web.Formatting
+@using Web.Reports
+@inject IReplenishmentService ReplenishmentService
+@inject IPaymentService PaymentService
+@inject IAccountService AccountService
+@inject IPaymentMethordService PaymentMethodService
+@inject ISnackbar Snackbar
+@inject ILogger<ReplenishmentDetails> Logger
+@inject IJSRuntime JS
+
+<MudDialog>
+    <DialogContent>
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError || replenishment is null)
+        {
+            <MudAlert Severity="Severity.Error">Could not load replenishment details.</MudAlert>
+        }
+        else
+        {
+            <MudStack Spacing="2">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.h6">@replenishment.ReplenishmentName</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @EntityReferenceFormatter.Format(EntityReferenceType.Replenishment, replenishment.Id)
+                    </MudText>
+                </MudStack>
+                <MudGrid Spacing="1">
+                    <MudItem xs="6"><MudText><b>Supplier</b></MudText></MudItem>
+                    <MudItem xs="6"><MudText>@replenishment.SupplierName</MudText></MudItem>
+                    <MudItem xs="6"><MudText><b>Phone</b></MudText></MudItem>
+                    <MudItem xs="6"><MudText>@replenishment.SupplierPhone</MudText></MudItem>
+                    <MudItem xs="6"><MudText><b>Quantity</b></MudText></MudItem>
+                    <MudItem xs="6"><MudText>@replenishment.QuantityReplenished @QuantityUnitFormatter.Format(replenishment.Unit)</MudText></MudItem>
+                    <MudItem xs="6"><MudText><b>Purchase price per unit</b></MudText></MudItem>
+                    <MudItem xs="6"><MudText>@FormatMoney(replenishment.PurchasePrice)</MudText></MudItem>
+                    <MudItem xs="6"><MudText><b>Total amount</b></MudText></MudItem>
+                    <MudItem xs="6"><MudText>@FormatMoney(replenishment.ReplenishmentAmount)</MudText></MudItem>
+                    <MudItem xs="6"><MudText><b>Date</b></MudText></MudItem>
+                    <MudItem xs="6"><MudText>@replenishment.ReplenishmentDate.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)</MudText></MudItem>
+                </MudGrid>
+
+                <MudDivider />
+                <MudText Typo="Typo.subtitle1"><b>Supplier payments</b></MudText>
+                <MudText>Paid: @FormatMoney(totalPaid) &nbsp; Remaining: @FormatMoney(outstanding)</MudText>
+                @if (supplierPayments.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">No supplier payments recorded.</MudText>
+                }
+                else
+                {
+                    <MudTable T="GetPaymentDTO" Items="@supplierPayments" Dense="true" Hover="true">
+                        <HeaderContent>
+                            <MudTh>Reference</MudTh>
+                            <MudTh>Date</MudTh>
+                            <MudTh>Method</MudTh>
+                            <MudTh Class="text-end">Amount</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Reference">@EntityReferenceFormatter.Format(EntityReferenceType.Payment, context.Id)</MudTd>
+                            <MudTd DataLabel="Date">@context.PaymentDate.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)</MudTd>
+                            <MudTd DataLabel="Method">@context.PaymentMethodName</MudTd>
+                            <MudTd DataLabel="Amount" Class="text-end">@FormatMoney(context.PaymentAmount)</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+
+                @if (_showPaymentForm)
+                {
+                    <MudPaper Outlined="true" Class="pa-3">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.subtitle1">Pay supplier</MudText>
+                            <MudNumericField T="decimal"
+                                             @bind-Value="_paymentAmount"
+                                             Label="Payment amount (RWF)"
+                                             Variant="Variant.Outlined"
+                                             Margin="Margin.Dense"
+                                             Min="0.01m"
+                                             Max="@outstanding"
+                                             Format="0.##" />
+                            @if (paymentMethods.Count == 0)
+                            {
+                                <MudAlert Severity="Severity.Warning">
+                                    No payment methods are configured. Add a payment method before recording this payment.
+                                </MudAlert>
+                            }
+                            else
+                            {
+                                <MudSelect T="int"
+                                           @bind-Value="_paymentMethodId"
+                                           Label="Payment method"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           Required="true">
+                                    @foreach (var method in paymentMethods)
+                                    {
+                                        <MudSelectItem T="int" Value="@method.Id">@method.PaymentMethodName</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            }
+                            @if (accounts.Count == 0)
+                            {
+                                <MudAlert Severity="@(accountLoadError ? Severity.Error : Severity.Warning)">
+                                    @(accountLoadError
+                                        ? "Accounts could not be loaded. Retry the replenishment details before recording a payment."
+                                        : "No active accounts are available. Add an account before recording this payment.")
+                                </MudAlert>
+                            }
+                            <MudSelect T="int?"
+                                       @bind-Value="_accountId"
+                                       Label="Pay from account"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Required="true"
+                                       RequiredError="Select the account used for this payment."
+                                       Disabled="@(accounts.Count == 0 || isSaving)">
+                                @foreach (var account in accounts)
+                                {
+                                    <MudSelectItem T="int?" Value="@((int?)account.Id)">
+                                        @($"{account.AccountName} (Balance: {MoneyFormatter.Format(account.Balance)} RWF)")
+                                    </MudSelectItem>
+                                }
+                            </MudSelect>
+                            <MudTextField @bind-Value="_paymentDescription"
+                                          Label="Payment notes"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense" />
+                        </MudStack>
+                    </MudPaper>
+                }
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (replenishment is not null && !isLoading && !loadError)
+        {
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Print"
+                       data-pdf-print="true"
+                       OnClick="PrintDetailsAsync"
+                       Disabled="@isSaving">
+                Print 
+            </MudButton>
+            @if (_showPaymentForm)
+            {
+                <MudButton Variant="Variant.Text" OnClick="@(() => _showPaymentForm = false)" Disabled="@isSaving">Cancel Payment</MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Payment"
+                           OnClick="SavePaymentAsync"
+                           Disabled="@(!CanSavePayment)">
+                    Record Payment
+                </MudButton>
+            }
+            else if (outstanding > 0)
+            {
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Payment"
+                           OnClick="ShowPaymentForm">
+                    Pay Supplier
+                </MudButton>
+            }
+        }
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="@isSaving">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public int ReplenishmentId { get; set; }
+
+    private GetReplenishmentDTO? replenishment;
+    private List<GetPaymentDTO> supplierPayments = new();
+    private List<GetPaymentMethordDTO> paymentMethods = new();
+    private List<GetAccountDTO> accounts = new();
+    private bool isLoading;
+    private bool loadError;
+    private bool accountLoadError;
+    private bool isSaving;
+    private bool _showPaymentForm;
+    private decimal _paymentAmount;
+    private int _paymentMethodId;
+    private int? _accountId;
+    private string _paymentDescription = string.Empty;
+
+    private decimal TotalAmount =>
+        decimal.TryParse(replenishment?.ReplenishmentAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount)
+            ? amount
+            : 0m;
+
+    private decimal totalPaid => supplierPayments.Sum(payment => payment.PaymentAmount);
+    private decimal outstanding => Math.Max(0m, TotalAmount - totalPaid);
+    private bool CanSavePayment =>
+        !isSaving
+        && replenishment is not null
+        && !accountLoadError
+        && accounts.Count > 0
+        && _paymentMethodId > 0
+        && _accountId.HasValue
+        && _paymentAmount > 0
+        && _paymentAmount <= outstanding;
+
+    protected override Task OnInitializedAsync() => LoadDetailsAsync();
+
+    private async Task LoadDetailsAsync()
+    {
+        isLoading = true;
+        loadError = false;
+        try
+        {
+            replenishment = await ReplenishmentService.GetReplenishmentByIdAsync(ReplenishmentId);
+            var payments = await PaymentService.GetAllPaymentAsync();
+            supplierPayments = payments
+                .Where(payment => payment.ReplenishmentId == ReplenishmentId
+                    && string.Equals(payment.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(payment => payment.PaymentDate)
+                .ToList();
+            paymentMethods = (await PaymentMethodService.GetAllPaymentMethordAsync())
+                .Where(method => string.Equals(method.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(method => method.PaymentMethodName)
+                .ToList();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load replenishment {ReplenishmentId} details.", ReplenishmentId);
+            loadError = true;
+            Snackbar.Add("Could not load replenishment details.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+
+        try
+        {
+            accounts = (await AccountService.GetAllAccountAsync())
+                .Where(account => string.Equals(account.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(account => account.AccountName)
+                .ToList();
+            accountLoadError = false;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load accounts for replenishment {ReplenishmentId} payment.", ReplenishmentId);
+            accounts.Clear();
+            accountLoadError = true;
+        }
+    }
+
+    private void ShowPaymentForm()
+    {
+        _paymentAmount = outstanding;
+        _paymentDescription = $"Supplier payment for replenishment {EntityReferenceFormatter.Format(EntityReferenceType.Replenishment, ReplenishmentId)}";
+        _showPaymentForm = true;
+    }
+
+    private async Task SavePaymentAsync()
+    {
+        if (!CanSavePayment || replenishment is null)
+            return;
+
+        isSaving = true;
+        try
+        {
+            await PaymentService.AddPaymentAsync(new AddPaymentDTO
+            {
+                PaymentName = $"Supplier payment - {replenishment.SupplierName}",
+                PaymentAmount = _paymentAmount,
+                PaymentDate = DateTime.Today,
+                PaymentDescription = _paymentDescription,
+                PaymentMethodId = _paymentMethodId,
+                AccountId = _accountId,
+                ReplenishmentId = ReplenishmentId,
+                DateAdded = DateTime.Now,
+                UserAdded = "System",
+                Status = "Active"
+            });
+            Snackbar.Add("Supplier payment recorded.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to record payment for replenishment {ReplenishmentId}.", ReplenishmentId);
+            Snackbar.Add("Could not record the supplier payment.", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task PrintDetailsAsync()
+    {
+        if (replenishment is null)
+            return;
+
+        try
+        {
+            var pdf = ReplenishmentReportPdfBuilder.CreatePdf(
+                new[] { replenishment },
+                replenishment.ReplenishmentDate.ToString("dd MMM yyyy", CultureInfo.CurrentCulture),
+                supplierPayments);
+            await JS.InvokeVoidAsync("customerReportDownloads.printPdf", Convert.ToBase64String(pdf));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not print details for replenishment {ReplenishmentId}.", ReplenishmentId);
+            Snackbar.Add("Could not print replenishment details.", Severity.Error);
+        }
+    }
+
+    private static string FormatMoney(string? amount)
+    {
+        if (!decimal.TryParse(amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
+            && !decimal.TryParse(amount, NumberStyles.Number, CultureInfo.CurrentCulture, out value))
+            return $"{amount} RWF";
+
+        return FormatMoney(value);
+    }
+
+    private static string FormatMoney(decimal amount) => $"{MoneyFormatter.Format(amount)} RWF";
+
+    private void Cancel() => MudDialog.Cancel();
+}

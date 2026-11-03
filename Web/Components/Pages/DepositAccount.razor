@@ -1,0 +1,116 @@
+@using Application.DTOs
+@using Application.Services.AccountServices
+@using Web.Formatting
+@inject IAccountService AccountService
+@inject ISnackbar Snackbar
+@inject ILogger<DepositAccount> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>Deposit to Account</TitleContent>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                Record money received from outside the shop. The deposit will be added to this account's balance.
+            </MudAlert>
+            <MudPaper Class="pa-3" Outlined="true">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold">@Account.AccountName</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @EntityReferenceFormatter.Format(EntityReferenceType.Account, Account.Id)
+                    @if (!string.IsNullOrWhiteSpace(Account.AccountNumber))
+                    {
+                        <span> · @Account.AccountNumber</span>
+                    }
+                </MudText>
+                <MudText Typo="Typo.body2" Class="mt-2">
+                    Current balance: <strong>@MoneyFormatter.Format(Account.Balance) RWF</strong>
+                </MudText>
+            </MudPaper>
+
+            <MudForm @ref="_form">
+                <MudNumericField T="decimal"
+                                 @bind-Value="_amount"
+                                 Label="Deposit amount"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 Adornment="Adornment.End"
+                                 AdornmentText="RWF"
+                                 Min="0.01m"
+                                 Step="0.01m"
+                                 Required="true"
+                                 RequiredError="Enter a deposit amount greater than zero."
+                                 Disabled="@isSaving"
+                                 AutoFocus="true" />
+                <MudTextField @bind-Value="_description"
+                              Label="Deposit note"
+                              HelperText="For example, owner funding or cash transfer from outside the shop."
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Required="true"
+                              RequiredError="Enter a short description for this deposit."
+                              MaxLength="200"
+                              Disabled="@isSaving" />
+            </MudForm>
+
+            @if (_amount > 0)
+            {
+                <MudText Typo="Typo.body2">
+                    New balance: <strong>@MoneyFormatter.Format(Account.Balance + _amount) RWF</strong>
+                </MudText>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Disabled="@isSaving">Cancel</MudButton>
+        <MudButton OnClick="SaveDepositAsync"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Savings"
+                   Disabled="@isSaving">
+            Deposit
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public GetAccountDTO Account { get; set; } = default!;
+
+    private MudForm? _form;
+    private decimal _amount;
+    private string _description = string.Empty;
+    private bool isSaving;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveDepositAsync()
+    {
+        if (isSaving || _form is null)
+            return;
+
+        await _form.ValidateAsync();
+        if (!_form.IsValid || _amount <= 0)
+            return;
+
+        isSaving = true;
+        try
+        {
+            await AccountService.DepositIntoAccountAsync(Account.Id, _amount, _description);
+            Snackbar.Add(
+                $"{MoneyFormatter.Format(_amount)} RWF deposited into {Account.AccountName}.",
+                Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to deposit into account {AccountId}.", Account.Id);
+            Snackbar.Add("Could not deposit funds into the account.", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

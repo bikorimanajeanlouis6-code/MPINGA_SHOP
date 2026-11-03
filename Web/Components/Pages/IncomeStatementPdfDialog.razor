@@ -1,0 +1,251 @@
+@using System.Globalization
+@using Web.Formatting
+@using Web.Reports
+@inject IJSRuntime JS
+@inject ILogger<IncomeStatementPdfDialog> Logger
+@inject ISnackbar Snackbar
+
+<MudDialog Class="income-statement-pdf-dialog">
+    <TitleContent>
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h6">Income Statement</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@PeriodDescription</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudChip T="string"
+                     Color="Color.Primary"
+                     Variant="Variant.Outlined"
+                     Icon="@Icons.Material.Filled.FilterAlt">
+                Showing: @SelectionLabel
+            </MudChip>
+            <MudGrid Spacing="2">
+                @if (IncludeIncome)
+                {
+                <MudItem xs="12" sm="@(IncludeExpenses ? 4 : 12)">
+                    <MudPaper Class="pa-3 statement-preview-total income" Elevation="0">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Total Income</MudText>
+                        <MudText Typo="Typo.h6" Class="fw-bold">@FormatMoney(IncomeTotal)</MudText>
+                    </MudPaper>
+                </MudItem>
+                }
+                @if (IncludeExpenses)
+                {
+                <MudItem xs="12" sm="@(IncludeIncome ? 4 : 12)">
+                    <MudPaper Class="pa-3 statement-preview-total expense" Elevation="0">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Total Expenses</MudText>
+                        <MudText Typo="Typo.h6" Class="fw-bold">@FormatMoney(ExpenseTotal)</MudText>
+                    </MudPaper>
+                </MudItem>
+                }
+                @if (IncludeIncome && IncludeExpenses)
+                {
+                <MudItem xs="12" sm="4">
+                    <MudPaper Class="pa-3 statement-preview-total result" Elevation="0">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Net Result</MudText>
+                        <MudText Typo="Typo.h6" Class="fw-bold">@FormatMoney(NetResult)</MudText>
+                    </MudPaper>
+                </MudItem>
+                }
+            </MudGrid>
+
+            @if (IncludeExpenses)
+            {
+            <MudPaper Outlined="true">
+                <MudText Typo="Typo.subtitle1" Class="pa-3">Expenses by Category</MudText>
+                <MudDivider />
+                <MudTable T="IncomeStatementExpenseCategory" Items="@ExpenseCategories" Dense="true" Hover="true">
+                    <HeaderContent>
+                        <MudTh>Category</MudTh>
+                        <MudTh Class="text-end">Transactions</MudTh>
+                        <MudTh Class="text-end">Total</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Category">@context.CategoryName</MudTd>
+                        <MudTd DataLabel="Transactions" Class="text-end">@context.Count</MudTd>
+                        <MudTd DataLabel="Total" Class="text-end">@FormatMoney(context.Amount)</MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText Class="pa-3" Color="Color.Secondary">No expenses recorded during this period.</MudText>
+                    </NoRecordsContent>
+                </MudTable>
+            </MudPaper>
+            }
+
+            <MudDataGrid T="IncomeStatementRow"
+                         Items="@Rows"
+                         SortMode="SortMode.Multiple"
+                         Dense="true"
+                         Hover="true"
+                         Elevation="0">
+                <ToolBarContent>
+                    <MudText Typo="Typo.subtitle1">Statement Transactions</MudText>
+                    <MudSpacer />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@Rows.Count record(s)</MudText>
+                </ToolBarContent>
+                <Columns>
+                    <PropertyColumn Property="row => row.Reference" Title="Reference" />
+                    <PropertyColumn Property="row => row.Description" Title="Description" />
+                    <PropertyColumn Property="row => row.Category" Title="Category" />
+                    <TemplateColumn Title="Type">
+                        <CellTemplate>
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Variant="Variant.Outlined"
+                                     Color="@(context.Item.IsIncome ? Color.Success : Color.Warning)">
+                                @(context.Item.IsIncome ? "Income" : "Expense")
+                            </MudChip>
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Date">
+                        <CellTemplate>@context.Item.Date.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Amount">
+                        <CellTemplate>@FormatMoney(context.Item.Amount)</CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+                <NoRecordsContent>
+                    <MudText Class="pa-3" Color="Color.Secondary">No transactions recorded during this period.</MudText>
+                </NoRecordsContent>
+                <PagerContent>
+                    <MudDataGridPager T="IncomeStatementRow" />
+                </PagerContent>
+            </MudDataGrid>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Close" Disabled="@isBusy">Close</MudButton>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Print"
+                   data-pdf-print="true"
+                   OnClick="PrintPdfAsync"
+                   Disabled="@isBusy">
+            Print
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Download"
+                   OnClick="DownloadPdfAsync"
+                   Disabled="@isBusy">
+            Download PDF
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .income-statement-pdf-dialog .statement-preview-total {
+        height: 100%;
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 8px;
+    }
+
+    .income-statement-pdf-dialog .statement-preview-total.income {
+        border-left: 4px solid var(--mud-palette-success);
+    }
+
+    .income-statement-pdf-dialog .statement-preview-total.expense {
+        border-left: 4px solid var(--mud-palette-warning);
+    }
+
+    .income-statement-pdf-dialog .statement-preview-total.result {
+        border-left: 4px solid var(--mud-palette-primary);
+    }
+</style>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string PeriodDescription { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string SelectionLabel { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool IncludeIncome { get; set; }
+
+    [Parameter]
+    public bool IncludeExpenses { get; set; }
+
+    [Parameter, EditorRequired]
+    public decimal IncomeTotal { get; set; }
+
+    [Parameter, EditorRequired]
+    public decimal ExpenseTotal { get; set; }
+
+    [Parameter, EditorRequired]
+    public decimal NetResult { get; set; }
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<IncomeStatementRow> Rows { get; set; } = Array.Empty<IncomeStatementRow>();
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<IncomeStatementExpenseCategory> ExpenseCategories { get; set; } =
+        Array.Empty<IncomeStatementExpenseCategory>();
+
+    private bool isBusy;
+
+    private static string FormatMoney(decimal amount) => $"{MoneyFormatter.Format(amount)} RWF";
+
+    private void Close() => MudDialog.Close();
+
+    private async Task PrintPdfAsync()
+    {
+        if (isBusy)
+            return;
+
+        isBusy = true;
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "customerReportDownloads.printPdf",
+                Convert.ToBase64String(CreatePdf()));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not print the income statement.");
+            Snackbar.Add("Could not open the print dialog.", Severity.Error);
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task DownloadPdfAsync()
+    {
+        if (isBusy)
+            return;
+
+        isBusy = true;
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "customerReportDownloads.downloadPdf",
+                Convert.ToBase64String(CreatePdf()),
+                $"income-statement-{SelectionLabel.ToLowerInvariant().Replace(' ', '-')}-{DateTime.Today:yyyyMMdd}.pdf");
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not generate the income statement PDF.");
+            Snackbar.Add("Could not download the income statement.", Severity.Error);
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private byte[] CreatePdf() => IncomeStatementPdfBuilder.CreatePdf(
+        Rows,
+        ExpenseCategories,
+        PeriodDescription,
+        SelectionLabel,
+        IncludeIncome,
+        IncludeExpenses,
+        IncomeTotal,
+        ExpenseTotal,
+        NetResult);
+}

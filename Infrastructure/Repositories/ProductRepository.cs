@@ -20,6 +20,7 @@ namespace Infrastructure.Repositories
             var entities = await _dbcontext.Products
                 .AsNoTracking()
                 .Include(product => product.ProductCategory)
+                .OrderByDescending(product => product.Id)
                 .ToListAsync();
             return entities.Select(ToDto).ToList();
         }
@@ -44,10 +45,31 @@ namespace Infrastructure.Repositories
                 ProductDescription = product.ProductDescription,
                 ProductPrice = RepositoryValueConversions.ToStorageString(product.ProductPrice),
                 ProductQuantity = RepositoryValueConversions.ToStorageString(product.ProductQuantity),
+                ProductCategoryId = product.ProductCategoryId,
                 Status = product.Status,
                 UserAdded = product.UserAdded,
                 DateAdded = product.DateAdded
             });
+            await _dbcontext.SaveChangesAsync();
+        }
+
+        public async Task UpdateProductAsync(AddProductDTO product)
+        {
+            ArgumentNullException.ThrowIfNull(product);
+            if (product.Id <= 0)
+                throw new ArgumentException("A valid product ID is required.", nameof(product));
+
+            var entity = await _dbcontext.Products
+                .FirstOrDefaultAsync(existingProduct => existingProduct.Id == product.Id)
+                ?? throw new KeyNotFoundException($"Product with ID {product.Id} was not found.");
+
+            entity.ProductName = product.ProductName;
+            entity.ProductDescription = product.ProductDescription;
+            entity.ProductPrice = RepositoryValueConversions.ToStorageString(product.ProductPrice);
+            entity.ProductQuantity = RepositoryValueConversions.ToStorageString(product.ProductQuantity);
+            entity.ProductCategoryId = product.ProductCategoryId;
+            entity.Status = product.Status;
+
             await _dbcontext.SaveChangesAsync();
         }
 

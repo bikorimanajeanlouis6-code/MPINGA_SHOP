@@ -1,0 +1,70 @@
+@using Application.DTOs
+@using Application.Services.AccountServices
+@inject IAccountService AccountService
+@inject ISnackbar Snackbar
+@inject ILogger<EditAccountBalance> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>Edit Account Balance</TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">@Account.AccountName</MudText>
+        <MudNumericField T="decimal"
+                         @bind-Value="_balance"
+                         Label="Balance"
+                         Variant="Variant.Outlined"
+                         Margin="Margin.Dense"
+                         Adornment="Adornment.End"
+                         AdornmentText="RWF"
+                         Disabled="@isSaving" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Disabled="@isSaving">
+            Cancel
+        </MudButton>
+        <MudButton OnClick="SaveBalanceAsync"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   Disabled="@isSaving">
+            Save Balance
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public GetAccountDTO Account { get; set; } = default!;
+
+    private decimal _balance;
+    private bool isSaving;
+
+    protected override void OnInitialized() => _balance = Account.Balance;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveBalanceAsync()
+    {
+        if (isSaving)
+            return;
+
+        isSaving = true;
+        try
+        {
+            await AccountService.UpdateAccountBalanceAsync(Account.Id, _balance);
+            Snackbar.Add("Account balance updated.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to update balance for account {AccountId}.", Account.Id);
+            Snackbar.Add("Could not update the account balance.", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

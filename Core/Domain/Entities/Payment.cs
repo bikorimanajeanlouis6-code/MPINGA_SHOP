@@ -19,4 +19,7 @@ public class Payment
 
     public int? AccountId { get; set; }
     public Account? Account { get; set; }
+
+    public int? ReplenishmentId { get; set; }
+    public Replenishment? Replenishment { get; set; }
 }

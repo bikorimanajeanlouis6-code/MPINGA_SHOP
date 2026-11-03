@@ -20,7 +20,9 @@ public class AddStockDTO
 public class GetStockDTO
 {
     public int Id { get; set; }
+    public int ProductId { get; set; }
     public string StockName { get; set; } = string.Empty;
+    public string ProductCategoryName { get; set; } = string.Empty;
     public int QuantityInStock { get; set; }
     public int QuantitySold { get; set; }
     public int QuantityAvailable { get; set; }

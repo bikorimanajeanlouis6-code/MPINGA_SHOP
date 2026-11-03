@@ -2,9 +2,12 @@
 @using System.Globalization
 @using Application.DTOs
 @using Application.Services.ProductServices
+@using Web.Formatting
 @rendermode InteractiveServer
 @inject IProductService ProductService
 @inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ILogger<Product> Logger
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudDataGrid T="GetProductDTO"
@@ -35,6 +38,9 @@
         </ToolBarContent>
 
         <Columns>
+            <TemplateColumn Title="Reference">
+                <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Product, context.Item.Id)</CellTemplate>
+            </TemplateColumn>
             <PropertyColumn Property="product => product.ProductName" Title="Product Name" />
             <PropertyColumn Property="product => product.ProductDescription" Title="Description" />
             <TemplateColumn Title="Price">
@@ -44,7 +50,7 @@
                             ? parsedPrice
                             : 0m;
                     }
-                    @price.ToString("C2")
+                    @($"{MoneyFormatter.Format(price)} RWF")
                 </CellTemplate>
             </TemplateColumn>
             <PropertyColumn Property="product => product.ProductQuantity" Title="Quantity" />
@@ -55,7 +61,18 @@
                 </CellTemplate>
             </TemplateColumn>
             <PropertyColumn Property="product => product.UserAdded" Title="Added By" />
-            <TemplateColumn Title="Status">
+            <TemplateColumn Title="Actions">
+                <CellTemplate>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="@(() => OpenEditProductAsync(context.Item))">
+                        Edit
+                    </MudButton>
+                </CellTemplate>
+            </TemplateColumn>
+            @* <TemplateColumn Title="Status">
                 <CellTemplate>
                     <MudChip T="string"
                              Size="Size.Small"
@@ -64,7 +81,7 @@
                         @context.Item.Status
                     </MudChip>
                 </CellTemplate>
-            </TemplateColumn>
+            </TemplateColumn> *@
         </Columns>
 
         <PagerContent>
@@ -76,10 +93,24 @@
 @code {
     private string _searchString = string.Empty;
     private List<GetProductDTO> products = new();
+    private bool isOpeningDialog;
 
     protected override async Task OnInitializedAsync()
     {
-        products = await ProductService.GetAllProductAsync();
+        await LoadProductsAsync();
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        try
+        {
+            products = await ProductService.GetAllProductAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load products.");
+            Snackbar.Add("Could not load products.", Severity.Error);
+        }
     }
 
     private Func<GetProductDTO, bool> QuickFilter => product =>
@@ -87,7 +118,8 @@
         if (string.IsNullOrWhiteSpace(_searchString))
             return true;
 
-        return product.ProductName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+        return EntityReferenceFormatter.Format(EntityReferenceType.Product, product.Id).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || product.ProductName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || (product.ProductDescription ?? string.Empty).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || product.ProductCategoryName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || product.ProductPrice.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase)
@@ -106,18 +138,70 @@
 
     private async Task OpenAddProductAsync()
     {
-        var dialog = await DialogService.ShowAsync<AddProduct>(
-            "Add Product",
-            new DialogOptions
-            {
-                CloseButton = true,
-                CloseOnEscapeKey = true,
-                MaxWidth = MaxWidth.Small,
-                FullWidth = true
-            });
-        var result = await dialog.Result;
+        if (isOpeningDialog)
+            return;
 
-        if (result is not null && !result.Canceled)
-            products = await ProductService.GetAllProductAsync();
+        isOpeningDialog = true;
+        try
+        {
+            var dialog = await DialogService.ShowAsync<AddProduct>(
+                "Add Product",
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Small,
+                    FullWidth = true
+                });
+            var result = await dialog.Result;
+
+            if (result is not null && !result.Canceled)
+                await LoadProductsAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open the add-product dialog.");
+            Snackbar.Add("Could not open the product form.", Severity.Error);
+        }
+        finally
+        {
+            isOpeningDialog = false;
+        }
+    }
+
+    private async Task OpenEditProductAsync(GetProductDTO product)
+    {
+        if (isOpeningDialog)
+            return;
+
+        isOpeningDialog = true;
+        try
+        {
+            var dialog = await DialogService.ShowAsync<EditProduct>(
+                "Edit Product",
+                new DialogParameters<EditProduct>
+                {
+                    { component => component.Product, product }
+                },
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Small,
+                    FullWidth = true
+                });
+            var result = await dialog.Result;
+            if (result is not null && !result.Canceled)
+                await LoadProductsAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open edit dialog for product {ProductId}.", product.Id);
+            Snackbar.Add("Could not open the edit product form.", Severity.Error);
+        }
+        finally
+        {
+            isOpeningDialog = false;
+        }
     }
 }

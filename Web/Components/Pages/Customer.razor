@@ -1,59 +1,137 @@
 @page "/Customer"
 @using Application.Services.CustomerServices
 @using Application.DTOs
+@using Application.Services.SaleItemsServices
+@using Web.Formatting
 @rendermode InteractiveServer
 @inject IDialogService DialogService
 @inject ICustomerService CustomerService
+@inject ISnackbar Snackbar
+@inject ILogger<Customer> Logger
 
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudStack Spacing="3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="customer-page-heading">
+            <MudImage Src="images/mpinga-shop-logo.png"
+                      Alt="Mpinga Farm Meat Market and Butchery"
+                      Width="76"
+                      Height="76"
+                      ObjectFit="ObjectFit.Contain"
+                      Class="customer-page-logo" />
+            <div>
+                <MudText Typo="Typo.h4" Class="customer-page-title">Customers</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Manage customer details, balances, and sales.</MudText>
+            </div>
+        </MudStack>
+
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="4">
+                <MudPaper Elevation="1" Class="customer-summary-card">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <div>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Total customers</MudText>
+                            <MudText Typo="Typo.h4">@customers.Count</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" Size="Size.Large" />
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Elevation="1" Class="customer-summary-card">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <div>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Customers with balance</MudText>
+                            <MudText Typo="Typo.h4">@customers.Count(customer => HasOutstandingBalance(customer.Balance))</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Color="Color.Primary" Size="Size.Large" />
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Elevation="1" Class="customer-summary-card">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <div>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Total outstanding</MudText>
+                            <MudText Typo="Typo.h6">@($"{MoneyFormatter.Format(TotalOutstanding)} RWF")</MudText>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.Payments" Color="Color.Primary" Size="Size.Large" />
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudPaper Elevation="1" Class="customer-grid-card">
         <MudDataGrid T="GetCustomerDTO" MultiSelection="true" Items="@customers" SortMode="SortMode.Multiple" Filterable="true" QuickFilter="@_quickFilter"
             Hideable="true">
             
             <ToolBarContent>
                 <MudText Typo="Typo.h6">Customers</MudText>
                 <MudSpacer />
-                <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="d-none d-md-flex">
-                  <MudTextField 
-                    @bind-Value="_searchString" 
-                    Placeholder="Search" 
+                <MudTextField
+                    @bind-Value="_searchString"
+                    Placeholder="Search customers"
                     Adornment="Adornment.Start" 
                     Immediate="true"
                     AdornmentIcon="@Icons.Material.Filled.Search" 
                     IconSize="Size.Medium" 
                     Variant="Variant.Outlined"
                     Margin="Margin.Dense"
-                    Class="mt-1 w-100">
-                  </MudTextField>
-                </MudContainer>
+                    Class="customer-search-field" />
 
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@OpenDialogAsync">
-                    <MudIcon Icon="@Icons.Material.Filled.Add" Class="me-1" />
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.PersonAdd"
+                           OnClick="@OpenDialogAsync"
+                           Disabled="@isOpeningDialog">
                     Add Customer
+                </MudButton>
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Assessment"
+                           Href="/CustomerReport">
+                    Report
                 </MudButton>
                 
             </ToolBarContent>
 
             <Columns>
                 <SelectColumn T="GetCustomerDTO" />
-                <PropertyColumn Property="x => x.Id" Title="Nr" Sortable="true" Filterable="false" />
+                <TemplateColumn Title="Reference" Sortable="false" Filterable="false">
+                    <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Customer, context.Item.Id)</CellTemplate>
+                </TemplateColumn>
                 <PropertyColumn Property="x => x.CustomerName" />
-                <PropertyColumn Property="x => x.Email" />
+                <PropertyColumn Property="x => x.Sex" Title="Sex" Sortable="true" Filterable="false" />
                 <PropertyColumn Property="x => x.PhoneNumber" />
-                <PropertyColumn Property="x => x.UserAdded" />
-
-                  <TemplateColumn Title="Status">
+                <TemplateColumn Title="Total Consumed">
                     <CellTemplate>
-                        <MudChip T="string"
-                                 Size="Size.Small"
-                                 Variant="Variant.Filled"
-                                 Color="@GetStatusColor(context.Item.Status)">
-                                 @context.Item.Status
-                        </MudChip>
+                        @($"{FormatMoney(context.Item.TotalConsumed)} RWF")
                     </CellTemplate>
-                 </TemplateColumn>
-                 
-                  
+                </TemplateColumn>
+                <TemplateColumn Title="Total Paid">
+                    <CellTemplate>
+                        @($"{FormatMoney(context.Item.TotalPaid)} RWF")
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Balance">
+                    <CellTemplate>
+                        <MudText Color="@(HasOutstandingBalance(context.Item.Balance) ? Color.Error : Color.Success)">
+                            @($"{FormatMoney(context.Item.Balance)} RWF")
+                        </MudText>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                    <CellTemplate>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.AddShoppingCart"
+                                   Disabled="@isOpeningSaleItems"
+                                   OnClick="@(() => OpenAddSaleItemsAsync(context.Item))">
+                            Add to Sale
+                        </MudButton>
+                    </CellTemplate>
+                </TemplateColumn>
             </Columns>
 
             <PagerContent>
@@ -61,18 +139,15 @@
             </PagerContent>
 
         </MudDataGrid>
+        </MudPaper>
+    </MudStack>
 </MudContainer>
 
 @code
 {
         private string _searchString = string.Empty;
-
-        private static Color GetStatusColor(string status) => status switch
-        {
-            "Active" => Color.Success,
-            "Inactive" => Color.Error,
-            _ => Color.Default
-        };
+        private bool isOpeningDialog;
+        private bool isOpeningSaleItems;
 
         private Func<GetCustomerDTO, bool> _quickFilter => x =>
         {
@@ -82,7 +157,8 @@
             if (x.CustomerName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
                 return true;
 
-            if (x.Id.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            if (EntityReferenceFormatter.Format(EntityReferenceType.Customer, x.Id).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                || x.Id.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase))
                 return true;
 
             if (x.DateAdded.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase))
@@ -90,6 +166,10 @@
 
             if (x.Email.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
                 || x.PhoneNumber.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                || x.Balance.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                || x.TotalConsumed.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                || x.TotalPaid.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                || MoneyFormatter.Format(x.Balance).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
                 || x.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
                 return true;
                 
@@ -99,28 +179,166 @@
             return false;
         };
 
+        private static string FormatMoney(string? amount) =>
+            MoneyFormatter.Format(string.IsNullOrWhiteSpace(amount) ? "0" : amount);
+
+        private static bool HasOutstandingBalance(string? balance) =>
+            decimal.TryParse(balance, System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture, out var amount)
+            && amount > 0;
+
         private List<GetCustomerDTO> customers = new();
+        private decimal TotalOutstanding => customers.Sum(customer => Math.Max(0m, ParseAmount(customer.Balance)));
+
+        private static decimal ParseAmount(string? amount) =>
+            decimal.TryParse(amount, System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture, out var value)
+                ? value
+                : decimal.TryParse(amount, System.Globalization.NumberStyles.Number,
+                    System.Globalization.CultureInfo.CurrentCulture, out value)
+                    ? value
+                    : 0m;
 
         protected override async Task OnInitializedAsync()
         {
-            customers = await CustomerService.GetAllCustomerAsync();
+            await LoadCustomersAsync();
+        }
+
+        private async Task LoadCustomersAsync()
+        {
+            try
+            {
+                customers = await CustomerService.GetAllCustomerAsync();
+            }
+            catch (Exception exception)
+            {
+                Logger.LogError(exception, "Failed to load customers.");
+                Snackbar.Add("Could not load customers.", Severity.Error);
+            }
         }
 
         private async Task OpenDialogAsync()
         {
-            var options = new DialogOptions
-            {
-                CloseButton = true,
-                CloseOnEscapeKey = true,
-                MaxWidth = MaxWidth.Medium
-            };
-            var dialog = await DialogService.ShowAsync<AddCustomer>("Add Customer", options);
-            var result = await dialog.Result;
+            if (isOpeningDialog)
+                return;
 
-            if (result is not null && !result.Canceled)
+            isOpeningDialog = true;
+            try
             {
-                customers = await CustomerService.GetAllCustomerAsync();
+                var options = new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Medium,
+                    FullWidth = true
+                };
+                var dialog = await DialogService.ShowAsync<AddCustomer>("Add Customer", options);
+                var result = await dialog.Result;
+
+                if (result is not null && !result.Canceled)
+                    await LoadCustomersAsync();
+            }
+            catch (Exception exception)
+            {
+                Logger.LogError(exception, "Failed to open the add-customer dialog.");
+                Snackbar.Add("Could not open the add-customer form.", Severity.Error);
+            }
+            finally
+            {
+                isOpeningDialog = false;
+            }
+        }
+
+        private async Task OpenAddSaleItemsAsync(GetCustomerDTO customer)
+        {
+            if (isOpeningSaleItems)
+                return;
+
+            isOpeningSaleItems = true;
+            try
+            {
+                var parameters = new DialogParameters<AddSaleItem>
+                {
+                    { dialog => dialog.CustomerId, customer.Id }
+                };
+                var dialog = await DialogService.ShowAsync<AddSaleItem>(
+                    $"Add Items to {customer.CustomerName}'s Sale",
+                    parameters,
+                    new DialogOptions
+                    {
+                        CloseButton = true,
+                        CloseOnEscapeKey = true,
+                        MaxWidth = MaxWidth.Medium,
+                        FullWidth = true
+                    });
+                var result = await dialog.Result;
+
+                if (result is not null && !result.Canceled && result.Data is true)
+                    await LoadCustomersAsync();
+            }
+            catch (Exception exception)
+            {
+                Logger.LogError(exception, "Failed to open sale items for customer {CustomerId}.", customer.Id);
+                Snackbar.Add("Could not open the add-items form.", Severity.Error);
+            }
+            finally
+            {
+                isOpeningSaleItems = false;
             }
         }
 
 }
+
+<style>
+    .customer-page-heading {
+        padding: 8px 0 4px;
+    }
+
+    .customer-page-logo {
+        flex: 0 0 auto;
+        padding: 6px;
+        border: 1px solid #eadcda;
+        border-radius: 12px;
+        background: #fff;
+    }
+
+    .customer-page-title {
+        color: #861d24;
+        font-weight: 600;
+    }
+
+    .customer-summary-card {
+        height: 100%;
+        padding: 20px;
+        border: 1px solid #eee8e7;
+        border-top: 3px solid #941f27;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .customer-grid-card {
+        overflow: hidden;
+        border: 1px solid #eee8e7;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .customer-search-field {
+        min-width: min(280px, 30vw);
+    }
+
+    @@media (max-width: 600px) {
+        .customer-page-heading {
+            align-items: flex-start;
+        }
+
+        .customer-page-logo {
+            width: 60px;
+            height: 60px;
+        }
+
+        .customer-search-field {
+            min-width: 100%;
+        }
+    }
+</style>

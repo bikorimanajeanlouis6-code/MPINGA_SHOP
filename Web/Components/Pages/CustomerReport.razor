@@ -1,0 +1,314 @@
+@page "/CustomerReport"
+@using Application.DTOs
+@using Application.Services.CustomerServices
+@using System.Globalization
+@using Web.Reports
+@rendermode InteractiveServer
+@inject ICustomerService CustomerService
+@inject ILogger<CustomerReport> Logger
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4 customer-report-page">
+    <MudStack Spacing="3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="customer-report-actions">
+            <MudText Typo="Typo.h6">Customer Report</MudText>
+            <MudSpacer />
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Print" data-pdf-print="true" OnClick="PrintReportAsync" Disabled="@(!IsDateRangeValid || isLoading || loadError)">
+                Print
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download" OnClick="DownloadReportAsync" Disabled="@(!IsDateRangeValid || isLoading || loadError)">
+                Download PDF
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/Customer" StartIcon="@Icons.Material.Filled.ArrowBack">
+                Customers
+            </MudButton>
+        </MudStack>
+
+        <MudGrid Spacing="2" Class="customer-report-filters">
+            <MudItem xs="12" sm="4" md="3">
+                <MudSelect T="string"
+                           @bind-Value="_selectedSex"
+                           Label="Sex"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    <MudSelectItem T="string" Value="@AllSexes">All</MudSelectItem>
+                    <MudSelectItem T="string" Value="@Male">Male</MudSelectItem>
+                    <MudSelectItem T="string" Value="@Female">Female</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4" md="3">
+                <MudDatePicker @bind-Date="_fromDate"
+                               Label="From date"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               DateFormat="dd MMM yyyy"
+                               Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4" md="3">
+                <MudDatePicker @bind-Date="_toDate"
+                               Label="To date"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               DateFormat="dd MMM yyyy"
+                               Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" md="3" Class="d-flex align-center">
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadCustomersAsync" Disabled="@isLoading">
+                    Refresh
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError)
+        {
+            <MudAlert Severity="Severity.Error">
+                Customer report could not be loaded.
+                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="LoadCustomersAsync">Retry</MudButton>
+            </MudAlert>
+        }
+        else
+        {
+            <div class="customer-report-print">
+                <header class="customer-report-print-header">
+                    <div>
+                        <h1>Customer Report</h1>
+                        <p>Customers: @filteredCustomers.Count</p>
+                        <p>Sex: @SexDescription | Dates: @DateRangeDescription</p>
+                        <p>Generated: @DateTime.Now.ToString("dd MMM yyyy HH:mm")</p>
+                    </div>
+                    <div class="customer-report-print-branding">
+                        <img class="customer-report-print-logo"
+                             src="images/mpinga-shop-logo.png"
+                             alt="Mpinga Farm Meat Market and Butchery logo" />
+                        <div class="customer-report-print-qr">
+                            <img src="@ReportQrCodeDataUri" alt="QR code containing this customer report summary" />
+                            <span>Report summary QR</span>
+                        </div>
+                    </div>
+                </header>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Reference</th>
+                            <th>Name</th>
+                            <th>Sex</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Registered</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var customer in filteredCustomers)
+                        {
+                            <tr>
+                                <td>@EntityReferenceFormatter.Format(EntityReferenceType.Customer, customer.Id)</td>
+                                <td>@customer.CustomerName</td>
+                                <td>@customer.Sex</td>
+                                <td>@customer.PhoneNumber</td>
+                                <td>@customer.Email</td>
+                                <td>@customer.DateAdded.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)</td>
+                                <td>@FormatBalance(customer.Balance)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <MudPaper Elevation="0" Class="pa-3 customer-report-summary" Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="3">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.subtitle1"><strong>@filteredCustomers.Count</strong> customers</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Sex: @SexDescription</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Dates: @DateRangeDescription</MudText>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+
+            @if (!IsDateRangeValid)
+            {
+                <MudAlert Severity="Severity.Warning">From date must be on or before the to date.</MudAlert>
+            }
+
+            <MudDataGrid T="GetCustomerDTO"
+                         Class="customer-report-grid"
+                         Items="@filteredCustomers"
+                         SortMode="SortMode.Multiple"
+                         Filterable="true"
+                         Dense="true"
+                         Hover="true"
+                         Elevation="1">
+                <Columns>
+                    <TemplateColumn Title="Reference">
+                        <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Customer, context.Item.Id)</CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="customer => customer.CustomerName" Title="Name" />
+                    <PropertyColumn Property="customer => customer.Sex" Title="Sex" />
+                    <PropertyColumn Property="customer => customer.PhoneNumber" Title="Phone" />
+                    <PropertyColumn Property="customer => customer.Email" Title="Email" />
+                    <TemplateColumn Title="Registered">
+                        <CellTemplate>@context.Item.DateAdded.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Balance">
+                        <CellTemplate>@FormatBalance(context.Item.Balance)</CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+                <NoRecordsContent>
+                    <MudText Class="pa-4" Color="Color.Secondary">No customers match these filters.</MudText>
+                </NoRecordsContent>
+                <PagerContent>
+                    <MudDataGridPager T="GetCustomerDTO" />
+                </PagerContent>
+            </MudDataGrid>
+
+        }
+    </MudStack>
+</MudContainer>
+
+@code {
+    private const string AllSexes = "All";
+    private const string Male = "Male";
+    private const string Female = "Female";
+    private string _selectedSex = AllSexes;
+    private DateTime? _fromDate;
+    private DateTime? _toDate;
+    private List<GetCustomerDTO> customers = new();
+    private bool isLoading;
+    private bool loadError;
+
+    [SupplyParameterFromQuery(Name = "from")]
+    public DateTime? QueryFromDate { get; set; }
+
+    [SupplyParameterFromQuery(Name = "to")]
+    public DateTime? QueryToDate { get; set; }
+
+    [SupplyParameterFromQuery(Name = "sex")]
+    public string? QuerySex { get; set; }
+
+    private string SexDescription => string.IsNullOrWhiteSpace(_selectedSex) ? AllSexes : _selectedSex;
+
+    private List<GetCustomerDTO> filteredCustomers => customers
+        .Where(customer => _selectedSex == AllSexes
+            || string.Equals(customer.Sex, _selectedSex, StringComparison.OrdinalIgnoreCase))
+        .Where(IsInSelectedPeriod)
+        .OrderByDescending(customer => customer.DateAdded)
+        .ToList();
+
+    private bool IsDateRangeValid => !_fromDate.HasValue || !_toDate.HasValue || _fromDate.Value.Date <= _toDate.Value.Date;
+
+    private static string FormatBalance(string? balance)
+    {
+        var amount = decimal.TryParse(balance, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : decimal.TryParse(balance, NumberStyles.Number, CultureInfo.CurrentCulture, out value) ? value : 0m;
+
+        return MoneyFormatter.Format(amount);
+    }
+
+    private string ReportQrPayload => string.Join(Environment.NewLine,
+        "Customer Report",
+        $"Customers: {filteredCustomers.Count}",
+        $"Sex: {SexDescription}",
+        $"Dates: {DateRangeDescription}",
+        $"Generated: {DateTime.Now:dd MMM yyyy HH:mm}");
+
+    private string ReportQrCodeDataUri => $"data:image/png;base64,{Convert.ToBase64String(CustomerReportPdfBuilder.CreateQrCode(ReportQrPayload))}";
+
+    private string DateRangeDescription
+    {
+        get
+        {
+            if (!_fromDate.HasValue && !_toDate.HasValue)
+                return "All dates";
+            var from = _fromDate.HasValue ? _fromDate.Value.ToString("dd MMM yyyy") : "Any date";
+            var to = _toDate.HasValue ? _toDate.Value.ToString("dd MMM yyyy") : "Any date";
+            return $"{from} to {to}";
+        }
+    }
+
+    protected override Task OnInitializedAsync() => LoadCustomersAsync();
+
+    protected override void OnParametersSet()
+    {
+        _fromDate = QueryFromDate;
+        _toDate = QueryToDate;
+        _selectedSex = QuerySex is Male or Female ? QuerySex : AllSexes;
+    }
+
+    private async Task LoadCustomersAsync()
+    {
+        isLoading = true;
+        loadError = false;
+        try
+        {
+            customers = await CustomerService.GetAllCustomerAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load customers for report.");
+            loadError = true;
+            Snackbar.Add("Could not load the customer report.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private bool IsInSelectedPeriod(GetCustomerDTO customer)
+    {
+        if (!IsDateRangeValid)
+            return false;
+
+        var registrationDate = customer.DateAdded.Date;
+        return (!_fromDate.HasValue || registrationDate >= _fromDate.Value.Date)
+            && (!_toDate.HasValue || registrationDate <= _toDate.Value.Date);
+    }
+
+    private async Task PrintReportAsync()
+    {
+        if (!IsDateRangeValid)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "customerReportDownloads.printPdf",
+                Convert.ToBase64String(CreateReportPdf()));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not print the customer report PDF.");
+            Snackbar.Add("Could not open the print dialog.", Severity.Error);
+        }
+    }
+
+    private async Task DownloadReportAsync()
+    {
+        if (!IsDateRangeValid)
+            return;
+
+        try
+        {
+            var pdf = CreateReportPdf();
+            var fileName = $"customer-report-{DateTime.Today:yyyyMMdd}.pdf";
+            await JS.InvokeVoidAsync("customerReportDownloads.downloadPdf", Convert.ToBase64String(pdf), fileName);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not generate the customer report PDF.");
+            Snackbar.Add("Could not download the customer report.", Severity.Error);
+        }
+    }
+
+    private byte[] CreateReportPdf() => CustomerReportPdfBuilder.CreatePdf(
+        filteredCustomers,
+        SexDescription,
+        DateRangeDescription,
+        CustomerReportPdfBuilder.CreateQrCode(ReportQrPayload));
+}

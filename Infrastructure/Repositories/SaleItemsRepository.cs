@@ -4,6 +4,7 @@ using Application.Interfaces;
 using Domain.Entities;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace Infrastructure.Repositories
 {
@@ -23,6 +24,8 @@ namespace Infrastructure.Repositories
                 .Include(item => item.Sales)
                     .ThenInclude(sale => sale!.Customer)
                 .Include(item => item.Product)
+                    .ThenInclude(product => product!.Stocks)
+                .OrderByDescending(item => item.Id)
                 .ToListAsync();
             return entities.Select(ToDto).ToList();
         }
@@ -34,6 +37,7 @@ namespace Infrastructure.Repositories
                 .Include(item => item.Sales)
                     .ThenInclude(sale => sale!.Customer)
                 .Include(item => item.Product)
+                    .ThenInclude(product => product!.Stocks)
                 .FirstOrDefaultAsync(item => item.Id == id);
             return entity is null
                 ? throw new KeyNotFoundException($"Sale item with ID {id} was not found.")
@@ -67,7 +71,7 @@ namespace Infrastructure.Repositories
                 return (Item: item, Price: price, Quantity: quantity);
             }).ToList();
 
-            await using var transaction = await _dbcontext.Database.BeginTransactionAsync();
+            await using var transaction = await _dbcontext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
             var sale = await _dbcontext.Sales
                 .FirstOrDefaultAsync(existingSale => existingSale.Id == salesId)
@@ -81,6 +85,45 @@ namespace Infrastructure.Repositories
 
             if (products.Count != productIds.Count)
                 throw new KeyNotFoundException("One or more selected products were not found.");
+
+            var requiredByProduct = validatedItems
+                .GroupBy(item => item.Item.ProductId)
+                .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
+            var stockLots = await _dbcontext.Stocks
+                .Where(stock => productIds.Contains(stock.ProductId) && stock.Status == "Active")
+                .OrderBy(stock => stock.DateAdded)
+                .ThenBy(stock => stock.Id)
+                .ToListAsync();
+
+            foreach (var (productId, requiredQuantity) in requiredByProduct)
+            {
+                var productLots = stockLots.Where(stock => stock.ProductId == productId).ToList();
+                if (productLots.Count == 0)
+                    throw new InvalidOperationException($"There is no stock available for {products[productId].ProductName}.");
+
+                var availableTotal = productLots.Sum(stock =>
+                    RepositoryValueConversions.ToInt32(stock.QuantityAvailable));
+                if (availableTotal < requiredQuantity)
+                {
+                    throw new InvalidOperationException(
+                        $"Insufficient stock for {products[productId].ProductName}. Available: {availableTotal}; requested: {requiredQuantity}.");
+                }
+
+                var remainingToSell = requiredQuantity;
+                foreach (var lot in productLots)
+                {
+                    if (remainingToSell == 0)
+                        break;
+
+                    var available = RepositoryValueConversions.ToInt32(lot.QuantityAvailable);
+                    var soldFromLot = Math.Min(available, remainingToSell);
+                    lot.QuantityAvailable = RepositoryValueConversions.ToStorageString(available - soldFromLot);
+                    lot.QuantitySold = RepositoryValueConversions.ToStorageString(
+                        RepositoryValueConversions.ToInt32(lot.QuantitySold) + soldFromLot);
+                    lot.LastlyModified = RepositoryValueConversions.ToStorageString(DateTime.Now);
+                    remainingToSell -= soldFromLot;
+                }
+            }
 
             var addedTotal = 0m;
             var now = DateTime.Now;
@@ -124,6 +167,10 @@ namespace Infrastructure.Repositories
             TotalSaleItemPrice = entity.TotalSaleItemPrice,
             CustomerName = entity.Sales?.Customer?.Name ?? string.Empty,
             SaleItemCategory = entity.SaleItemCategory,
+            Unit = entity.Product?.Stocks?
+                .OrderByDescending(stock => stock.DateAdded)
+                .Select(stock => stock.Unit)
+                .FirstOrDefault() ?? string.Empty,
             DateAdded = entity.DateAdded,
             UserAdded = entity.UserAdded,
             Status = entity.Status,

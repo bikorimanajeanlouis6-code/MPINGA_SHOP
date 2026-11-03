@@ -1,0 +1,117 @@
+
+@using Application.DTOs
+@using Application.Services.IdentityServices
+
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+@rendermode InteractiveServer
+@inject NavigationManager navigation
+@inject IIdentityService IdentityService
+
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>Add User</TitleContent>
+    <DialogContent>
+         <EditForm Model="users" OnValidSubmit="SaveusersAsync">
+           <MudGrid>
+            <MudItem xs="6">
+                <MudTextField 
+                @bind-Value="users.FirstName"
+                Margin="Margin.Dense"
+                Variant="Variant.Outlined"
+                Label="First name"
+                Placeholder="firstname">
+                </MudTextField>
+            </MudItem>
+
+            <MudItem xs="6">
+                <MudTextField 
+                @bind-Value="users.LastName"
+                Margin="Margin.Dense"
+                Variant="Variant.Outlined"
+                Label="Last Name"
+                Placeholder="LastName">
+                </MudTextField>
+            </MudItem>
+
+
+            <MudItem xs="6">
+                <MudTextField 
+                @bind-Value="users.Email"
+                Margin="Margin.Dense"
+                Variant="Variant.Outlined"
+                Label="Email"
+                Placeholder="fiston@gmail.com">
+                </MudTextField>
+            </MudItem>
+            <MudItem xs="6">
+                <MudTextField 
+                @bind-Value="users.PhoneNumber"
+                Margin="Margin.Dense"
+                Variant="Variant.Outlined"
+                Label="Phone"
+                Placeholder="078 2828 2828">
+                </MudTextField>
+            </MudItem>
+            
+            <MudItem xs="6">
+                <MudTextField 
+                @bind-Value="users.Role"
+                Margin="Margin.Dense"
+                Variant="Variant.Outlined"
+                Label="Role"
+                Placeholder="Role">
+                </MudTextField>
+            </MudItem>
+              <MudItem xs="6">
+                <MudTextField 
+                @bind-Value="users.Password"
+                Margin="Margin.Dense"
+                Variant="Variant.Outlined"
+                Label="Password"
+                Placeholder="Password"
+                InputType="@(showPassword ? InputType.Text : InputType.Password)"
+                Adornment="Adornment.End"
+                AdornmentIcon="@(showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                OnAdornmentClick="TogglePasswordVisibility">
+                </MudTextField> 
+            </MudItem>
+             
+           
+            
+            <MudItem xs="12">
+                <MudButton 
+                Variant="Variant.Filled"
+                Color="Color.Primary"
+                FullWidth="true" 
+                ButtonType="ButtonType.Submit">
+                SAVE
+                </MudButton>
+            </MudItem>
+
+           </MudGrid> 
+        </EditForm>
+
+    </DialogContent>
+    
+</MudDialog>
+
+
+@code{
+
+     [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+    private AddUserDTO users = new ();
+     private bool showPassword;
+
+     private void TogglePasswordVisibility() => showPassword = !showPassword;
+
+        private async Task SaveusersAsync()
+    {
+       await IdentityService.AddUserAsync(users);
+       MudDialog.Close(DialogResult.Ok(true));
+    }
+    
+}

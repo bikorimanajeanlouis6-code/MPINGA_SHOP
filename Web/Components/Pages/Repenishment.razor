@@ -1,5 +1,6 @@
 @page "/Replenishment"
 @using System.Globalization
+@using Web.Formatting
 @using Application.Services.ReplenishmentServices
 @rendermode InteractiveServer
 @inject IReplenishmentService ReplenishmentService
@@ -20,6 +21,12 @@
                           Variant="Variant.Outlined"
                           Margin="Margin.Dense"
                           Class="me-3" />
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       Href="/ReplenishmentReport"
+                       StartIcon="@Icons.Material.Filled.Assessment">
+                Report
+            </MudButton>
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add"
@@ -55,58 +62,34 @@
                          Hover="true"
                          Elevation="1">
                 <Columns>
+                    <TemplateColumn Title="Reference">
+                        <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Replenishment, context.Item.Id)</CellTemplate>
+                    </TemplateColumn>
                     <PropertyColumn Property="replenishment => replenishment.ReplenishmentName" Title="Replenishment Name" />
                     <PropertyColumn Property="replenishment => replenishment.SupplierName" Title="Supplier Name" />
                     <PropertyColumn Property="replenishment => replenishment.SupplierPhone" Title="Supplier Phone" />
-                    <TemplateColumn Title="Amount">
-                        <CellTemplate>
-                            @{
-                                var amount = decimal.TryParse(context.Item.ReplenishmentAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedAmount)
-                                    ? parsedAmount
-                                    : 0m;
-                            }
-                            @amount.ToString("C2")
-                        </CellTemplate>
-                    </TemplateColumn>
                     <TemplateColumn Title="Replenishment Date">
                         <CellTemplate>
                             @context.Item.ReplenishmentDate.ToString("dd MMM yyyy")
                         </CellTemplate>
                     </TemplateColumn>
-                    <PropertyColumn Property="replenishment => replenishment.QuantityReplenished" Title="Quantity Replenished" />
-                    <TemplateColumn Title="Selling Price">
+                    <TemplateColumn Title="Quantity Replenished">
                         <CellTemplate>
-                            @{
-                                var sellingPrice = decimal.TryParse(context.Item.SellingPrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedSellingPrice)
-                                    ? parsedSellingPrice
-                                    : 0m;
-                            }
-                            @sellingPrice.ToString("C2")
+                            @context.Item.QuantityReplenished @QuantityUnitFormatter.Format(context.Item.Unit)
                         </CellTemplate>
                     </TemplateColumn>
-                    <TemplateColumn Title="Purchasing Price">
-                        <CellTemplate>
-                            @{
-                                var purchasePrice = decimal.TryParse(context.Item.PurchasePrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedPurchasePrice)
-                                    ? parsedPurchasePrice
-                                    : 0m;
-                            }
-                            @purchasePrice.ToString("C2")
-                        </CellTemplate>
+                    <TemplateColumn Title="Amount">
+                        <CellTemplate>@FormatMoney(context.Item.ReplenishmentAmount)</CellTemplate>
                     </TemplateColumn>
-                    <TemplateColumn Title="Total Purchase Price">
+                    <TemplateColumn Title="Details">
                         <CellTemplate>
-                            @{
-                                var totalPurchasePrice = decimal.TryParse(context.Item.TotalPurchasePrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedTotalPurchasePrice)
-                                    ? parsedTotalPurchasePrice
-                                    : 0m;
-                            }
-                            @totalPurchasePrice.ToString("C2")
-                        </CellTemplate>
-                    </TemplateColumn>
-                    <TemplateColumn Title="Date Added">
-                        <CellTemplate>
-                            @context.Item.DateAdded.ToString("dd MMM yyyy")
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Visibility"
+                                       OnClick="@(() => OpenDetailsAsync(context.Item))">
+                                View Details
+                            </MudButton>
                         </CellTemplate>
                     </TemplateColumn>
                 </Columns>
@@ -131,6 +114,16 @@
     private bool _isOpeningAddDialog;
     private bool isLoading;
     private bool loadError;
+    private bool _isOpeningDetailsDialog;
+
+    private static string FormatMoney(string? amount)
+    {
+        if (!decimal.TryParse(amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
+            && !decimal.TryParse(amount, NumberStyles.Number, CultureInfo.CurrentCulture, out value))
+            return $"{amount} RWF";
+
+        return $"{MoneyFormatter.Format(value)} RWF";
+    }
 
     protected override Task OnInitializedAsync() => LoadReplenishmentsAsync();
 
@@ -160,7 +153,8 @@
         if (string.IsNullOrWhiteSpace(_searchString))
             return true;
 
-        return replenishment.ReplenishmentName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+        return EntityReferenceFormatter.Format(EntityReferenceType.Replenishment, replenishment.Id).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || replenishment.ReplenishmentName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || replenishment.ReplenishmentAmount.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || replenishment.SupplierName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || replenishment.SupplierPhone.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
@@ -202,6 +196,42 @@
         finally
         {
             _isOpeningAddDialog = false;
+        }
+    }
+
+    private async Task OpenDetailsAsync(GetReplenishmentDTO replenishment)
+    {
+        if (_isOpeningDetailsDialog)
+            return;
+
+        _isOpeningDetailsDialog = true;
+        try
+        {
+            var dialog = await DialogService.ShowAsync<ReplenishmentDetails>(
+                "Replenishment Details",
+                new DialogParameters<ReplenishmentDetails>
+                {
+                    { component => component.ReplenishmentId, replenishment.Id }
+                },
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Medium,
+                    FullWidth = true
+                });
+            var result = await dialog.Result;
+            if (result is not null && !result.Canceled)
+                await LoadReplenishmentsAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open replenishment details for {ReplenishmentId}.", replenishment.Id);
+            Snackbar.Add("Could not open replenishment details.", Severity.Error);
+        }
+        finally
+        {
+            _isOpeningDetailsDialog = false;
         }
     }
 }

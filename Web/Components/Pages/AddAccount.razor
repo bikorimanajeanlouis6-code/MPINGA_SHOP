@@ -1,0 +1,109 @@
+@using Application.DTOs
+@using Application.Services.AccountServices
+@inject IAccountService AccountService
+@inject ISnackbar Snackbar
+@inject ILogger<AddAccount> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>Add Account</TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="account.AccountName"
+                          Label="Account Name"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Required="true"
+                          RequiredError="Account name is required."
+                          AutoFocus="true" />
+            <MudTextField @bind-Value="account.AccountNumber"
+                          Label="Account Number"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Required="true"
+                          RequiredError="Account number is required." />
+            <MudNumericField T="decimal"
+                             @bind-Value="account.Balance"
+                             Label="Balance"
+                             Variant="Variant.Outlined"
+                             Margin="Margin.Dense"
+                             Min="0"
+                             Adornment="Adornment.End"
+                             AdornmentText="RWF" />
+            @* <MudTextField @bind-Value="account.BankName"
+                          Label="Bank"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Required="true"
+                          RequiredError="Bank name is required." /> *@
+            @* <MudSelect T="string"
+                       @bind-Value="account.Status"
+                       Label="Status"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Required="true"
+                       RequiredError="Select an account status.">
+                <MudSelectItem T="string" Value="@ActiveStatus">Active</MudSelectItem>
+                <MudSelectItem T="string" Value="@InactiveStatus">Inactive</MudSelectItem>
+            </MudSelect> *@
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Color="Color.Default"
+                   Disabled="@isSaving">
+            Cancel
+        </MudButton>
+        <MudButton OnClick="SaveAccountAsync"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   Disabled="@isSaving">
+            Save Account
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private const string ActiveStatus = "Active";
+    private const string InactiveStatus = "Inactive";
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm? _form;
+    private readonly AddAccountDTO account = new() { Status = ActiveStatus };
+    private bool isSaving;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAccountAsync()
+    {
+        if (isSaving || _form is null)
+            return;
+
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        isSaving = true;
+        account.DateAdded = DateTime.Now;
+        account.UserAdded = "System";
+
+        try
+        {
+            await AccountService.AddAccountAsync(account);
+            Snackbar.Add("Account added successfully.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to add account.");
+            Snackbar.Add("Could not add the account.", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

@@ -1,0 +1,336 @@
+@page "/StockReport"
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.StockServices
+@using Web.Formatting
+@using Web.Reports
+@rendermode InteractiveServer
+@inject IStockService StockService
+@inject ILogger<StockReport> Logger
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudStack Spacing="3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+            <MudText Typo="Typo.h6">Stock Report by Category</MudText>
+            <MudSpacer />
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Print"
+                       data-pdf-print="true"
+                       OnClick="PrintReportAsync"
+                       Disabled="@(!CanGenerateReport)">
+                Print
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       OnClick="DownloadReportAsync"
+                       Disabled="@(!CanGenerateReport)">
+                Download PDF
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/Stock" StartIcon="@Icons.Material.Filled.ArrowBack">
+                Stock
+            </MudButton>
+        </MudStack>
+
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="string"
+                           @bind-Value="_selectedPeriod"
+                           Label="Report period"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    <MudSelectItem T="string" Value="@DayPeriod">Day</MudSelectItem>
+                    <MudSelectItem T="string" Value="@WeekPeriod">Week</MudSelectItem>
+                    <MudSelectItem T="string" Value="@MonthPeriod">Month</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudDatePicker @bind-Date="_reportDate"
+                               Label="Select date"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               DateFormat="dd MMM yyyy" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="string"
+                           @bind-Value="_selectedCategory"
+                           Label="Category"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    <MudSelectItem T="string" Value="@AllCategoriesValue">All categories</MudSelectItem>
+                    @foreach (var category in AvailableCategories)
+                    {
+                        <MudSelectItem T="string" Value="@category">@category</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
+                <MudText Color="Color.Secondary">Showing @PeriodDescription</MudText>
+            </MudItem>
+        </MudGrid>
+
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError)
+        {
+            <MudAlert Severity="Severity.Error">
+                Stock report could not be loaded.
+                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="LoadStockAsync">Retry</MudButton>
+            </MudAlert>
+        }
+        else
+        {
+            <MudPaper Elevation="0" Class="pa-3" Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="4">
+                    <MudText Typo="Typo.subtitle1"><strong>@FilteredStock.Count</strong> stock items</MudText>
+                    <MudText Typo="Typo.subtitle1"><strong>@Categories.Count</strong> categories</MudText>
+                    <MudText Typo="Typo.subtitle1">Quantity in: <strong>@FormatQuantityByUnit(FilteredStock, stock => stock.QuantityInStock)</strong></MudText>
+                    <MudText Typo="Typo.subtitle1">Quantity sold: <strong>@FormatQuantityByUnit(FilteredStock, stock => stock.QuantitySold)</strong></MudText>
+                    <MudText Typo="Typo.subtitle1">Available: <strong>@FormatQuantityByUnit(FilteredStock, stock => stock.QuantityAvailable)</strong></MudText>
+                </MudStack>
+            </MudPaper>
+
+            <MudDataGrid T="StockCategorySummary"
+                         Items="@Categories"
+                         SortMode="SortMode.Multiple"
+                         Dense="true"
+                         Hover="true"
+                         Elevation="1">
+                <Columns>
+                    <PropertyColumn Property="category => category.CategoryName" Title="Category" />
+                    <PropertyColumn Property="category => category.ProductCount" Title="Stock Items" />
+                    <TemplateColumn Title="Quantity In">
+                        <CellTemplate>@FormatQuantityByUnit(context.Item.Items, stock => stock.QuantityInStock)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Quantity Sold">
+                        <CellTemplate>@FormatQuantityByUnit(context.Item.Items, stock => stock.QuantitySold)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Available">
+                        <CellTemplate>@FormatQuantityByUnit(context.Item.Items, stock => stock.QuantityAvailable)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Stock Value">
+                        <CellTemplate>@FormatMoney(context.Item.Items.Sum(stock => stock.QuantityAvailable * stock.LastPrice))</CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+                <NoRecordsContent>
+                    <MudText Class="pa-4" Color="Color.Secondary">No stock was added during this period.</MudText>
+                </NoRecordsContent>
+            </MudDataGrid>
+
+            <MudText Typo="Typo.subtitle1">Stock Items</MudText>
+            <MudDataGrid T="GetStockDTO"
+                         Items="@FilteredStock"
+                         SortMode="SortMode.Multiple"
+                         Dense="true"
+                         Hover="true"
+                         Elevation="1">
+                <Columns>
+                    <TemplateColumn Title="Reference">
+                        <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Stock, context.Item.Id)</CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="stock => stock.StockName" Title="Stock Name" />
+                    <PropertyColumn Property="stock => stock.ProductCategoryName" Title="Category" />
+                    <TemplateColumn Title="Quantity In">
+                        <CellTemplate>@FormatQuantity(context.Item.QuantityInStock, context.Item.Unit)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Quantity Sold">
+                        <CellTemplate>@FormatQuantity(context.Item.QuantitySold, context.Item.Unit)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Available">
+                        <CellTemplate>@FormatQuantity(context.Item.QuantityAvailable, context.Item.Unit)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Stock Value">
+                        <CellTemplate>@FormatMoney(context.Item.QuantityAvailable * context.Item.LastPrice)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Date Added">
+                        <CellTemplate>@context.Item.DateAdded.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)</CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+            </MudDataGrid>
+        }
+    </MudStack>
+</MudContainer>
+
+@code {
+    private const string DayPeriod = "Day";
+    private const string WeekPeriod = "Week";
+    private const string MonthPeriod = "Month";
+    private const string AllCategoriesValue = "\0all-categories";
+
+    private string _selectedPeriod = DayPeriod;
+    private string _selectedCategory = AllCategoriesValue;
+    private DateTime? _reportDate = DateTime.Today;
+    private List<GetStockDTO> stocks = new();
+    private bool isLoading;
+    private bool loadError;
+
+    private bool CanGenerateReport => !isLoading && !loadError && _reportDate.HasValue;
+    private string CategoryDescription =>
+        _selectedCategory == AllCategoriesValue ? "All categories" : _selectedCategory;
+    private List<string> AvailableCategories =>
+        stocks
+            .Select(stock => string.IsNullOrWhiteSpace(stock.ProductCategoryName)
+                ? "Uncategorized"
+                : stock.ProductCategoryName.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(category => category, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private (DateTime Start, DateTime End) SelectedDateRange
+    {
+        get
+        {
+            var selectedDate = (_reportDate ?? DateTime.Today).Date;
+            return _selectedPeriod switch
+            {
+                WeekPeriod => GetWeekRange(selectedDate),
+                MonthPeriod => (new DateTime(selectedDate.Year, selectedDate.Month, 1),
+                    new DateTime(selectedDate.Year, selectedDate.Month, 1).AddMonths(1)),
+                _ => (selectedDate, selectedDate.AddDays(1))
+            };
+        }
+    }
+
+    private List<GetStockDTO> FilteredStock
+    {
+        get
+        {
+            var range = SelectedDateRange;
+            return stocks
+                .Where(stock => stock.DateAdded >= range.Start && stock.DateAdded < range.End)
+                .Where(stock => _selectedCategory == AllCategoriesValue
+                    || string.Equals(
+                        string.IsNullOrWhiteSpace(stock.ProductCategoryName) ? "Uncategorized" : stock.ProductCategoryName.Trim(),
+                        _selectedCategory,
+                        StringComparison.OrdinalIgnoreCase))
+                .OrderBy(stock => stock.ProductCategoryName, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(stock => stock.StockName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+    }
+
+    private List<StockCategorySummary> Categories =>
+        FilteredStock
+            .GroupBy(stock => string.IsNullOrWhiteSpace(stock.ProductCategoryName)
+                    ? "Uncategorized"
+                    : stock.ProductCategoryName.Trim(),
+                StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(group => new StockCategorySummary(group.Key, group.ToList()))
+            .ToList();
+
+    private string PeriodDescription
+    {
+        get
+        {
+            if (!_reportDate.HasValue)
+                return "select a date";
+
+            var (start, end) = SelectedDateRange;
+            var lastDay = end.AddDays(-1);
+            return start.Date == lastDay.Date
+                ? start.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)
+                : $"{start.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)} to {lastDay.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)}";
+        }
+    }
+
+    protected override Task OnInitializedAsync() => LoadStockAsync();
+
+    private static (DateTime Start, DateTime End) GetWeekRange(DateTime date)
+    {
+        var daysSinceMonday = ((int)date.DayOfWeek + 6) % 7;
+        var start = date.AddDays(-daysSinceMonday);
+        return (start, start.AddDays(7));
+    }
+
+    private static string FormatMoney(decimal amount) =>
+        MoneyFormatter.Format(amount);
+
+    private static string FormatQuantity(int quantity, string? unit) =>
+        $"{quantity.ToString("N0", CultureInfo.CurrentCulture)} {QuantityUnitFormatter.Format(unit)}";
+
+    private static string FormatQuantityByUnit(IEnumerable<GetStockDTO> items, Func<GetStockDTO, int> quantitySelector)
+    {
+        var totals = items
+            .GroupBy(stock => QuantityUnitFormatter.Format(stock.Unit), StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(group => $"{group.Sum(quantitySelector).ToString("N0", CultureInfo.CurrentCulture)} {group.Key}");
+
+        return string.Join(", ", totals);
+    }
+
+    private async Task LoadStockAsync()
+    {
+        isLoading = true;
+        loadError = false;
+
+        try
+        {
+            stocks = await StockService.GetAllStocksAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load stock for report.");
+            loadError = true;
+            Snackbar.Add("Could not load the stock report.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task PrintReportAsync()
+    {
+        if (!CanGenerateReport)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "customerReportDownloads.printPdf",
+                Convert.ToBase64String(CreateReportPdf()));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not print the stock report PDF.");
+            Snackbar.Add("Could not open the print dialog.", Severity.Error);
+        }
+    }
+
+    private async Task DownloadReportAsync()
+    {
+        if (!CanGenerateReport)
+            return;
+
+        try
+        {
+            var fileName = $"stock-report-{_selectedPeriod.ToLowerInvariant()}-{_reportDate!.Value:yyyyMMdd}.pdf";
+            await JS.InvokeVoidAsync(
+                "customerReportDownloads.downloadPdf",
+                Convert.ToBase64String(CreateReportPdf()),
+                fileName);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not generate the stock report PDF.");
+            Snackbar.Add("Could not download the stock report.", Severity.Error);
+        }
+    }
+
+    private byte[] CreateReportPdf() => StockReportPdfBuilder.CreatePdf(
+        Categories
+            .Select(category => new StockReportCategory(category.CategoryName, category.Items))
+            .ToList(),
+        PeriodDescription,
+        CategoryDescription);
+
+    private sealed record StockCategorySummary(string CategoryName, List<GetStockDTO> Items)
+    {
+        public int ProductCount => Items.Count;
+    }
+}

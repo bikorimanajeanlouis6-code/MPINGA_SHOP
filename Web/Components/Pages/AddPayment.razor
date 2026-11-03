@@ -1,0 +1,294 @@
+@using Application.DTOs
+@using Application.Services.AccountServices
+@using Application.Services.PaymentMethordServices
+@using Application.Services.PaymentServices
+@using Application.Services.SalesServices
+@using System.Globalization
+@using Web.Formatting
+@inject IPaymentMethordService PaymentMethodService
+@inject IAccountService AccountService
+@inject IPaymentService PaymentService
+@inject ISalesService SalesService
+@inject ISnackbar Snackbar
+@inject ILogger<AddPayment> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>Add Payment</TitleContent>
+    <DialogContent>
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-3">
+                Payment options could not be loaded. Retry before saving.
+            </MudAlert>
+            <MudButton OnClick="LoadOptionsAsync"
+                       Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       Disabled="@isLoading">
+                Retry
+            </MudButton>
+        }
+        else
+        {
+            @if (paymentMethods.Count == 0)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    No active payment methods are configured. Add a payment method before recording a payment.
+                </MudAlert>
+            }
+            @if (sales.Count == 0)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    No unpaid sales are available to record a payment against.
+                </MudAlert>
+            }
+            @if (accounts.Count == 0)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    No active accounts are available. Add an account before recording a customer payment.
+                </MudAlert>
+            }
+
+            <MudForm @ref="_form">
+                <MudSelect T="int?"
+                           Value="payment.SalesId"
+                           ValueChanged="OnSaleChanged"
+                           Label="Unpaid Sale"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Required="true"
+                           RequiredError="Select a sale."
+                           Disabled="@(sales.Count == 0 || isSaving)">
+                    @foreach (var sale in sales)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)sale.Id)">
+                            @($"{EntityReferenceFormatter.Format(EntityReferenceType.Sale, sale.Id)} - {sale.CustomerName} (Remaining: {FormatMoney(GetRemainingSaleBalance(sale))} RWF)")
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                @if (SelectedSale is not null)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Remaining amount: @FormatMoney(GetRemainingSaleBalance(SelectedSale)) RWF. Payment cannot exceed the sale amount consumed.
+                    </MudText>
+                }
+                <MudSelect T="int?"
+                           @bind-Value="_accountId"
+                           Label="Deposit account"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Required="true"
+                           RequiredError="Select the account receiving this payment."
+                           Disabled="@(accounts.Count == 0 || isSaving)">
+                    @foreach (var account in accounts)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)account.Id)">
+                            @($"{account.AccountName} (Balance: {MoneyFormatter.Format(account.Balance)} RWF)")
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudNumericField T="decimal"
+                                 @bind-Value="payment.PaymentAmount"
+                                 Label="Amount (RWF)"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 Min="0.01m"
+                                 Max="@GetRemainingSaleBalance(SelectedSale)"
+                                 Required="true"
+                                 RequiredError="Enter an amount greater than zero."
+                                 Disabled="@isSaving" />
+                @if (SelectedSale is not null && payment.PaymentAmount > GetRemainingSaleBalance(SelectedSale))
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true">
+                        Payment cannot exceed the remaining amount consumed:
+                        @FormatMoney(GetRemainingSaleBalance(SelectedSale)) RWF.
+                    </MudAlert>
+                }
+                <MudDatePicker @bind-Date="_paymentDate"
+                               Label="Payment Date"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               DateFormat="dd MMM yyyy"
+                               Required="true"
+                               Disabled="@isSaving" />
+                <MudSelect T="int?"
+                           @bind-Value="_paymentMethodId"
+                           Label="Payment Method"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Required="true"
+                           RequiredError="Select a payment method."
+                           Disabled="@(paymentMethods.Count == 0 || isSaving)">
+                    @foreach (var method in paymentMethods)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)method.Id)">
+                            @method.PaymentMethodName
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudForm>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@isSaving">
+            Cancel
+        </MudButton>
+        @if (!isLoading && !loadError)
+        {
+            <MudButton OnClick="SavePaymentAsync"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       Disabled="@(!CanSave)">
+                Save Payment
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public int? CustomerId { get; set; }
+
+    private MudForm? _form;
+    private readonly AddPaymentDTO payment = new();
+    private List<GetPaymentMethordDTO> paymentMethods = new();
+    private List<GetAccountDTO> accounts = new();
+    private List<GetSalesDTO> sales = new();
+    private int? _paymentMethodId;
+    private int? _accountId;
+    private DateTime? _paymentDate = DateTime.Today;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool loadError;
+    private bool CanSave =>
+        !isLoading
+        && !loadError
+        && !isSaving
+        && paymentMethods.Count > 0
+        && accounts.Count > 0
+        && _accountId.HasValue
+        && _paymentMethodId.HasValue
+        && payment.SalesId.HasValue
+        && payment.PaymentAmount > 0
+        && SelectedSale is not null
+        && payment.PaymentAmount <= GetRemainingSaleBalance(SelectedSale)
+        && _paymentDate.HasValue;
+
+    protected override Task OnInitializedAsync() => LoadOptionsAsync();
+
+    private async Task LoadOptionsAsync()
+    {
+        isLoading = true;
+        loadError = false;
+        paymentMethods.Clear();
+        accounts.Clear();
+        sales.Clear();
+        try
+        {
+            paymentMethods = (await PaymentMethodService.GetAllPaymentMethordAsync())
+                .Where(method => string.Equals(method.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(method => method.PaymentMethodName)
+                .ToList();
+            accounts = (await AccountService.GetAllAccountAsync())
+                .Where(account => string.Equals(account.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(account => account.AccountName)
+                .ToList();
+            sales = (await SalesService.GetAllSalesAsync())
+                .Where(sale => string.Equals(sale.Status, "Active", StringComparison.OrdinalIgnoreCase)
+                    && (!CustomerId.HasValue || sale.CustomerId == CustomerId.Value)
+                    && GetRemainingSaleBalance(sale) > 0)
+                .OrderByDescending(sale => sale.Id)
+                .ToList();
+            if (sales.Count > 0)
+                OnSaleChanged(sales[0].Id);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load payment options for a new payment.");
+            loadError = true;
+            Snackbar.Add("Could not load sales, accounts, or payment methods.", Severity.Error);
+        }
+
+        isLoading = false;
+    }
+
+    private GetSalesDTO? SelectedSale =>
+        payment.SalesId.HasValue
+            ? sales.FirstOrDefault(sale => sale.Id == payment.SalesId.Value)
+            : null;
+
+    private void OnSaleChanged(int? saleId)
+    {
+        payment.SalesId = saleId;
+        var sale = saleId.HasValue
+            ? sales.FirstOrDefault(existingSale => existingSale.Id == saleId.Value)
+            : null;
+        payment.PaymentAmount = sale is null ? 0m : GetRemainingSaleBalance(sale);
+    }
+
+    private static decimal GetRemainingSaleBalance(GetSalesDTO? sale)
+    {
+        if (sale is null)
+            return 0m;
+
+        var consumed = ParseAmount(sale.TotalConsumed);
+        var paid = ParseAmount(sale.TotalPaid);
+        return Math.Max(0m, consumed - paid);
+    }
+
+    private static decimal ParseAmount(string? amount) =>
+        decimal.TryParse(amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : decimal.TryParse(amount, NumberStyles.Number, CultureInfo.CurrentCulture, out value)
+                ? value
+                : 0m;
+
+    private static string FormatMoney(decimal amount) => MoneyFormatter.Format(amount);
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SavePaymentAsync()
+    {
+        if (_form is null || !CanSave || !_paymentMethodId.HasValue || !_paymentDate.HasValue || !payment.SalesId.HasValue)
+            return;
+
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        isSaving = true;
+        var saleId = payment.SalesId.Value;
+        payment.PaymentMethodId = _paymentMethodId.Value;
+        payment.AccountId = _accountId;
+        payment.PaymentDate = _paymentDate.Value;
+        payment.PaymentName = $"Payment for Sale {EntityReferenceFormatter.Format(EntityReferenceType.Sale, saleId)}";
+        payment.DateAdded = DateTime.Now;
+        payment.UserAdded = "System";
+        payment.Status = "Active";
+
+        try
+        {
+            await PaymentService.AddPaymentAsync(payment);
+            Snackbar.Add("Payment added successfully.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to add payment.");
+            Snackbar.Add("Could not add the payment.", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

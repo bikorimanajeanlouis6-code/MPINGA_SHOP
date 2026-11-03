@@ -1,0 +1,187 @@
+@page "/CreditReport"
+@using Application.DTOs
+@using Application.Services.CustomerServices
+@using Web.Formatting
+@rendermode InteractiveServer
+@inject ICustomerService CustomerService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ILogger<CreditReport> Logger
+
+<PageTitle>Customer Balances</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudStack Spacing="3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+            <MudText Typo="Typo.h6">Customer Balances</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString"
+                          Placeholder="Search customers"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense" />
+        </MudStack>
+
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (_loadError)
+        {
+            <MudAlert Severity="Severity.Error">
+                Credit report could not be loaded.
+                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="LoadReportAsync">Retry</MudButton>
+            </MudAlert>
+        }
+        else
+        {
+            <MudDataGrid T="GetCustomerDTO"
+                         Items="@_customers"
+                         SortMode="SortMode.Multiple"
+                         Filterable="true"
+                         QuickFilter="@QuickFilter"
+                         Dense="true"
+                         Hover="true"
+                         Loading="@_isLoading"
+                         Elevation="1">
+                <Columns>
+                    <TemplateColumn Title="Reference">
+                        <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Customer, context.Item.Id)</CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="customer => customer.CustomerName" Title="Customer Name" />
+                    <PropertyColumn Property="customer => customer.PhoneNumber" Title="Phone" />
+                    <TemplateColumn Title="Total Consumed">
+                        <CellTemplate>@($"{MoneyFormatter.Format(context.Item.TotalConsumed)} RWF")</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Current Balance">
+                        <CellTemplate>
+                            <MudText Color="@(Outstanding(context.Item) > 0 ? Color.Error : Color.Success)">
+                                @($"{MoneyFormatter.Format(Outstanding(context.Item))} RWF")
+                            </MudText>
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Utilization">
+                        <CellTemplate>
+                            <MudProgressLinear Value="@((double)Utilization(context.Item))"
+                                               Color="@(Outstanding(context.Item) > 0 ? Color.Warning : Color.Success)"
+                                               Rounded="true" />
+                            <MudText Typo="Typo.caption">@($"{Utilization(context.Item):N1}% outstanding")</MudText>
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Action" Sortable="false" Filterable="false">
+                        <CellTemplate>
+                            <MudStack Row="true" Spacing="1">
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.Payment"
+                                           Disabled="@(Outstanding(context.Item) <= 0)"
+                                           OnClick="@(() => OpenPaymentAsync(context.Item))">
+                                    Pay
+                                </MudButton>
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Text"
+                                           StartIcon="@Icons.Material.Filled.ReceiptLong"
+                                           OnClick="@(() => OpenStatementAsync(context.Item))">
+                                    Statement
+                                </MudButton>
+                            </MudStack>
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+                <NoRecordsContent>
+                    <MudText Class="pa-4" Color="Color.Secondary">No customers match this search.</MudText>
+                </NoRecordsContent>
+                <PagerContent>
+                    <MudDataGridPager T="GetCustomerDTO" />
+                </PagerContent>
+            </MudDataGrid>
+        }
+    </MudStack>
+</MudContainer>
+
+@code {
+    private string _searchString = string.Empty;
+    private List<GetCustomerDTO> _customers = new();
+    private bool _isLoading;
+    private bool _loadError;
+
+    protected override Task OnInitializedAsync() => LoadReportAsync();
+
+    private async Task LoadReportAsync()
+    {
+        _isLoading = true;
+        _loadError = false;
+        try
+        {
+            _customers = await CustomerService.GetAllCustomerAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load the customer credit report.");
+            _loadError = true;
+            Snackbar.Add("Could not load the customer credit report.", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private Func<GetCustomerDTO, bool> QuickFilter => customer =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        return customer.CustomerName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || customer.PhoneNumber.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || customer.TotalConsumed.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || customer.Balance.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    };
+
+    private async Task OpenPaymentAsync(GetCustomerDTO customer)
+    {
+        var parameters = new DialogParameters<AddPayment>
+        {
+            { dialog => dialog.CustomerId, customer.Id }
+        };
+        var dialog = await DialogService.ShowAsync<AddPayment>(
+            $"Payment for {customer.CustomerName}",
+            parameters,
+            new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+            await LoadReportAsync();
+    }
+
+    private async Task OpenStatementAsync(GetCustomerDTO customer)
+    {
+        var parameters = new DialogParameters<CreditStatementDialog>
+        {
+            { dialog => dialog.CustomerId, customer.Id }
+        };
+        await DialogService.ShowAsync<CreditStatementDialog>(
+            $"Statement - {customer.CustomerName}",
+            parameters,
+            new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraLarge, FullWidth = true });
+    }
+
+    private static decimal Outstanding(GetCustomerDTO customer) => Math.Max(0m, ParseAmount(customer.Balance));
+
+    private static decimal Utilization(GetCustomerDTO customer)
+    {
+        var consumed = ParseAmount(customer.TotalConsumed);
+        return consumed <= 0m ? 0m : Math.Clamp(Outstanding(customer) / consumed * 100m, 0m, 100m);
+    }
+
+    private static decimal ParseAmount(string? amount) =>
+        decimal.TryParse(amount, System.Globalization.NumberStyles.Number,
+            System.Globalization.CultureInfo.InvariantCulture, out var value)
+            ? value
+            : decimal.TryParse(amount, System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.CurrentCulture, out value)
+                ? value
+                : 0m;
+}

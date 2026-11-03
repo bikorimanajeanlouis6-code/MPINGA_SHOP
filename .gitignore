@@ -1,0 +1,63 @@
+# ==========================================
+# .NET Build & Artifact Outputs
+# ==========================================
+**/[Bb]in/
+**/[Oo]bj/
+**/[Dd]ebug/
+**/[Rr]elease/
+**/[Bb]uild/
+**/[Oo]ut/
+**/[Oo]utput/
+
+# ==========================================
+# Environment & Configuration Files (Secrets)
+# ==========================================
+# Ignore all environment-specific settings (contains secrets/connection strings)
+**/appsettings.*.json
+
+# Keep base appsettings.json in source control
+!**/appsettings.json
+
+# ==========================================
+# User-Specific & Cache Files
+# ==========================================
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.nupkg
+*.snupkg
+*.cache
+*.log
+.nuget/
+packages/
+project.lock.json
+
+# ==========================================
+# IDE & Code Editor Directories
+# ==========================================
+# Visual Studio / VS Code
+.vs/
+.vscode/
+.vscode-test/
+*.dbmdl
+*.jfm
+
+# JetBrains / Rider
+.idea/
+
+# ==========================================
+# Operating System Files
+# ==========================================
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ==========================================
+# Database & Temporary Files
+# ==========================================
+*.mdf
+*.ldf
+*.sqlite
+*.db
+*.appsettings.Development.json

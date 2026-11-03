@@ -1,22 +1,24 @@
 using Application.DTOs;
+using Application.Interfaces;
 
 namespace Application.Services.PaymentMethordServices
 {
     public class PaymentMethordService : IPaymentMethordService
     {
-        public Task<List<GetPaymentMethordDTO>> GetAllPaymentMethordAsync()
+        private readonly IPaymentMethord _paymentMethodRepository;
+
+        public PaymentMethordService(IPaymentMethord paymentMethodRepository)
         {
-            return Task.FromResult(new List<GetPaymentMethordDTO>());
+            _paymentMethodRepository = paymentMethodRepository;
         }
 
-        public Task<GetPaymentMethordDTO> GetPaymentMethordByIdAsync(int id)
-        {
-            return Task.FromResult(new GetPaymentMethordDTO());
-        }
+        public Task<List<GetPaymentMethordDTO>> GetAllPaymentMethordAsync() =>
+            _paymentMethodRepository.GetAllPaymentMethordAsync();
 
-        public Task AddPaymentMethordAsync(AddPaymentMethordDTO paymentMethord)
-        {
-            return Task.CompletedTask;
-        }
+        public Task<GetPaymentMethordDTO> GetPaymentMethordByIdAsync(int id) =>
+            _paymentMethodRepository.GetPaymentMethordByIdAsync(id);
+
+        public Task AddPaymentMethordAsync(AddPaymentMethordDTO paymentMethord) =>
+            _paymentMethodRepository.AddPaymentMethordAsync(paymentMethord);
     }
 }

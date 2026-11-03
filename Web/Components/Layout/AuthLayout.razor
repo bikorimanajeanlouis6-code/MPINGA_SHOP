@@ -1,5 +1,5 @@
 @inherits LayoutComponentBase
-<MudThemeProvider />
+<MudThemeProvider Theme="_theme" />
 <MudLayout>
     <MudContainer>
         <MudMainContent>
@@ -8,14 +8,17 @@
     </MudContainer>
 </MudLayout>
 @code{
+     private const string DarkRed = "#3B0000";
+     private const string DarkRedAppBar = "#260000";
+
      private MudTheme _theme = new MudTheme()
     {
         PaletteLight = new PaletteLight()
         {
-            Primary = Colors.Indigo.Lighten4,           // Deep blue for primary actions
-            Secondary = Colors.Teal.Darken1,         // Teal for secondary actions
-            Tertiary = Colors.Orange.Accent2,         // Orange for accents
-            AppbarBackground = Colors.Blue.Darken3,   // Dark blue appbar
+            Primary = DarkRed,
+            Secondary = Colors.Amber.Darken2,
+            Tertiary = DarkRed,
+            AppbarBackground = DarkRedAppBar,
             Background = Colors.Gray.Lighten5,       // Very light gray background
             Surface = Colors.Shades.White,            // White surface
             DrawerBackground = Colors.Shades.White,   // White drawer
@@ -23,7 +26,7 @@
             Success = Colors.Green.Darken1,           // Success green
             Warning = Colors.Orange.Darken1,          // Warning orange
             Error = Colors.Red.Darken1,                // Error red
-            Info = Colors.Blue.Darken1,                // Info blue
+            Info = Colors.Red.Darken1,
             TextPrimary = Colors.Shades.Black,        // Primary text
             TextSecondary = Colors.Gray.Darken1,      // Secondary text
             Divider = Colors.Gray.Lighten1,          // Divider color
@@ -32,18 +35,18 @@
         },
         PaletteDark = new PaletteDark()
         {
-            Primary = Colors.Indigo.Lighten4,          // Light blue for primary actions
-            Secondary = Colors.Teal.Lighten1,        // Light teal for secondary
-            Tertiary = Colors.Orange.Lighten1,       // Light orange for accents
-            AppbarBackground = Colors.Gray.Darken4,   // Very dark gray appbar
+            Primary = DarkRed,
+            Secondary = Colors.Amber.Lighten2,
+            Tertiary = DarkRed,
+            AppbarBackground = DarkRedAppBar,
             Background = Colors.Gray.Darken3,        // Dark gray background
             Surface = Colors.Gray.Darken2,            // Dark surface
             DrawerBackground = Colors.Gray.Darken3,  // Dark drawer
             DrawerText = Colors.Shades.White,        // White text in drawer
             Success = Colors.Green.Lighten1,         // Success green
             Warning = Colors.Orange.Lighten1,        // Warning orange
-            Error = Colors.Indigo.Lighten4,              // Error red
-            Info = Colors.Blue.Lighten1,              // Info blue
+            Error = Colors.Red.Lighten1,
+            Info = Colors.Red.Lighten1,
             TextPrimary = Colors.Shades.White,       // Primary text
             TextSecondary = Colors.Gray.Lighten1,     // Secondary text
             Divider = Colors.Gray.Darken1,           // Divider color

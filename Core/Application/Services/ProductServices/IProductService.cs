@@ -7,6 +7,7 @@ namespace Application.Services.ProductServices
            Task <List<GetProductDTO>>GetAllProductAsync();
            Task AddProductAsync(AddProductDTO product); 
            Task <GetProductDTO> GetProductByIdAsync(int id);
+           Task UpdateProductAsync(AddProductDTO product);
        
     }
 }

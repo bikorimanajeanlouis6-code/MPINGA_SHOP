@@ -7,9 +7,11 @@ public class Account
     public string AccountName { get; set; }
     public string AccountNumber { get; set; } 
     public string BankName { get; set; } 
+    public decimal Balance { get; set; }
     public string Status { get; set; } 
     public string UserAdded { get; set; } 
     public DateTime DateAdded { get; set; }
 
     public ICollection<Payment> Payments { get; set; }
+    public ICollection<AccountDeposit> Deposits { get; set; } = new List<AccountDeposit>();
 }

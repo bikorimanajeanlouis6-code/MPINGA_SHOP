@@ -2,6 +2,8 @@ using Application.Interfaces;
 using Application.DependanceInjection;
 using Web.Components;
 using Infrastructure.DependanceInjection;
+using Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 
 
@@ -12,18 +14,35 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
-
-   
+builder.Services.AddAuthorization();
 
 //register Service
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddApplicationServices();
 builder.Services.AddMudServices();
 
- builder.Services.AddControllers();
+builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
+if (app.Environment.IsDevelopment())
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var migrationLogger = scope.ServiceProvider
+        .GetRequiredService<ILoggerFactory>()
+        .CreateLogger("DatabaseMigrations");
+
+    try
+    {
+        await dbContext.Database.MigrateAsync();
+    }
+    catch (Exception exception)
+    {
+        migrationLogger.LogCritical(exception, "Failed to apply pending database migrations.");
+        throw;
+    }
+}
 
 
 
@@ -37,6 +56,8 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Security headers
 app.Use(async (context, next) =>
@@ -52,12 +73,7 @@ app.Use(async (context, next) =>
 
 app.UseAntiforgery();
 
-app.UseAuthentication(); 
-app.UseAuthorization();
-
-app.MapControllers(); // Account login/logout endpoints
-
-
+app.MapControllers();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

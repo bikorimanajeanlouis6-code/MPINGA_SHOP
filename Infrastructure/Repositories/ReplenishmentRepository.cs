@@ -3,6 +3,7 @@ using Application.Interfaces;
 using Domain.Entities;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace Infrastructure.Repositories
 {
@@ -17,13 +18,20 @@ namespace Infrastructure.Repositories
 
         public async Task<List<GetReplenishmentDTO>> GetAllReplenishmentsAsync()
         {
-            var entities = await _dbcontext.Replenishments.AsNoTracking().ToListAsync();
+            var entities = await _dbcontext.Replenishments
+                .AsNoTracking()
+                .Include(replenishment => replenishment.Product)
+                    .ThenInclude(product => product!.Stocks)
+                .OrderByDescending(replenishment => replenishment.Id)
+                .ToListAsync();
             return entities.Select(ToDto).ToList();
         }
 
         public async Task<GetReplenishmentDTO> GetReplenishmentByIdAsync(int id)
         {
             var entity = await _dbcontext.Replenishments.AsNoTracking()
+                .Include(replenishment => replenishment.Product)
+                    .ThenInclude(product => product!.Stocks)
                 .FirstOrDefaultAsync(replenishment => replenishment.Id == id);
             return entity is null
                 ? throw new KeyNotFoundException($"Replenishment with ID {id} was not found.")
@@ -33,40 +41,176 @@ namespace Infrastructure.Repositories
         public async Task AddReplenishmentAsync(AddReplenishmentDTO replenishment)
         {
             ArgumentNullException.ThrowIfNull(replenishment);
-            await _dbcontext.Replenishments.AddAsync(new Replenishment
+            if (replenishment.ProductId <= 0
+                || replenishment.QuantityReplenished <= 0
+                || !decimal.TryParse(
+                    replenishment.PurchasePrice,
+                    System.Globalization.NumberStyles.Number,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var purchasePrice)
+                || purchasePrice <= 0)
+            {
+                throw new ArgumentException(
+                    "A product, positive quantity, and positive purchase price are required.",
+                    nameof(replenishment));
+            }
+
+            var total = purchasePrice * replenishment.QuantityReplenished;
+            if (replenishment.PaidAmount < 0 || replenishment.PaidAmount > total)
+                throw new ArgumentOutOfRangeException(nameof(replenishment), "The initial supplier payment must be between zero and the replenishment total.");
+            if (replenishment.PaidAmount > 0
+                && (replenishment.AccountId is not > 0 || replenishment.PaymentMethodId is not > 0))
+            {
+                throw new ArgumentException(
+                    "An account and payment method are required when recording an initial supplier payment.",
+                    nameof(replenishment));
+            }
+
+            var unit = replenishment.Unit.Trim().ToLowerInvariant();
+            if (unit is not ("kg" or "pcs"))
+                throw new ArgumentException("Replenishment unit must be kg or pcs.", nameof(replenishment));
+
+            await using var transaction = await _dbcontext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var product = await _dbcontext.Products
+                .Include(existingProduct => existingProduct.Stocks)
+                .FirstOrDefaultAsync(existingProduct => existingProduct.Id == replenishment.ProductId)
+                ?? throw new KeyNotFoundException($"Product with ID {replenishment.ProductId} was not found.");
+
+            var existingUnit = product.Stocks?
+                .Select(stock => NormalizeUnit(stock.Unit))
+                .FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(existingUnit)
+                && !string.Equals(existingUnit, unit, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"The selected product already uses {existingUnit}. Replenishment must use the same unit.");
+            }
+
+            Account? account = null;
+            if (replenishment.PaidAmount > 0)
+            {
+                var accountId = replenishment.AccountId.GetValueOrDefault();
+                account = await _dbcontext.Accounts
+                    .FirstOrDefaultAsync(existingAccount => existingAccount.Id == accountId)
+                    ?? throw new KeyNotFoundException($"Account with ID {accountId} was not found.");
+            }
+
+            var replenishmentEntity = new Replenishment
             {
                 ReplenishmentName = replenishment.ReplenishmentName,
-                ReplenishmentAmount = RepositoryValueConversions.ToStorageString(replenishment.ReplenishmentAmount),
+                ReplenishmentAmount = RepositoryValueConversions.ToStorageString(total),
                 ReplenishmentDate = RepositoryValueConversions.ToStorageString(replenishment.ReplenishmentDate),
                 QuantityReplenished = RepositoryValueConversions.ToStorageString(replenishment.QuantityReplenished),
                 SellingPrice = RepositoryValueConversions.ToStorageString(replenishment.SellingPrice),
                 PurchasePrice = RepositoryValueConversions.ToStorageString(replenishment.PurchasePrice),
-                totalpurchaseprice = RepositoryValueConversions.ToStorageString(replenishment.TotalPurchasePrice),
+                totalpurchaseprice = RepositoryValueConversions.ToStorageString(total),
                 SupplierName = replenishment.SupplierName,
                 SupplierPhone = replenishment.SupplierPhone,
                 ProductId = replenishment.ProductId,
                 DateAdded = replenishment.DateAdded,
                 UserAdded = replenishment.UserAdded,
                 Status = replenishment.Status
+            };
+            await _dbcontext.Replenishments.AddAsync(replenishmentEntity);
+            await _dbcontext.Stocks.AddAsync(new Stock
+            {
+                StockName = product.ProductName,
+                QuantityInStock = RepositoryValueConversions.ToStorageString(replenishment.QuantityReplenished),
+                QuantitySold = "0",
+                QuantityAvailable = RepositoryValueConversions.ToStorageString(replenishment.QuantityReplenished),
+                Unit = unit,
+                SellingPrice = RepositoryValueConversions.ToStorageString(
+                    decimal.TryParse(
+                        replenishment.SellingPrice,
+                        System.Globalization.NumberStyles.Number,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out var sellingPrice)
+                        ? sellingPrice
+                        : 0m),
+                LastPrice = RepositoryValueConversions.ToStorageString(purchasePrice),
+                LastlyModified = RepositoryValueConversions.ToStorageString(DateTime.Now),
+                ProductId = product.Id,
+                DateAdded = DateTime.Now,
+                UserAdded = replenishment.UserAdded,
+                Status = "Active"
             });
             await _dbcontext.SaveChangesAsync();
+
+            if (replenishment.PaidAmount > 0)
+            {
+                account!.Balance -= replenishment.PaidAmount;
+                await _dbcontext.Payments.AddAsync(new Payment
+                {
+                    PaymentName = $"Supplier payment - {replenishment.SupplierName}",
+                    PaymentAmount = RepositoryValueConversions.ToStorageString(replenishment.PaidAmount),
+                    PaymentDate = RepositoryValueConversions.ToStorageString(replenishment.ReplenishmentDate),
+                    PaymentDescription = $"Initial supplier payment for replenishment #{replenishmentEntity.Id}",
+                    PaymentMethodId = replenishment.PaymentMethodId!.Value,
+                    AccountId = account.Id,
+                    ReplenishmentId = replenishmentEntity.Id,
+                    DateAdded = replenishment.DateAdded,
+                    UserAdded = replenishment.UserAdded,
+                    Status = "Active"
+                });
+                await _dbcontext.SaveChangesAsync();
+            }
+
+            await transaction.CommitAsync();
         }
 
-        private static GetReplenishmentDTO ToDto(Replenishment entity) => new()
+        private static GetReplenishmentDTO ToDto(Replenishment entity)
         {
-            Id = entity.Id,
-            ReplenishmentName = entity.ReplenishmentName,
-            ReplenishmentAmount = entity.ReplenishmentAmount,
-            ReplenishmentDate = RepositoryValueConversions.ToDateTime(entity.ReplenishmentDate),
-            QuantityReplenished = RepositoryValueConversions.ToInt32(entity.QuantityReplenished),
-            SellingPrice = entity.SellingPrice,
-            PurchasePrice = entity.PurchasePrice,
-            TotalPurchasePrice = entity.totalpurchaseprice,
-            SupplierName = entity.SupplierName,
-            SupplierPhone = entity.SupplierPhone,
-            DateAdded = entity.DateAdded,
-            UserAdded = entity.UserAdded,
-            Status = entity.Status
-        };
+            var quantity = int.TryParse(
+                entity.QuantityReplenished,
+                System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var parsedQuantity)
+                ? parsedQuantity
+                : 0;
+            var hasPurchasePrice = decimal.TryParse(
+                entity.PurchasePrice,
+                System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var purchasePrice);
+            var total = hasPurchasePrice
+                ? purchasePrice * quantity
+                : decimal.TryParse(
+                    entity.totalpurchaseprice,
+                    System.Globalization.NumberStyles.Number,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var existingTotal)
+                    ? existingTotal
+                    : 0m;
+            var totalString = RepositoryValueConversions.ToStorageString(total);
+
+            return new GetReplenishmentDTO
+            {
+                Id = entity.Id,
+                ReplenishmentName = entity.ReplenishmentName,
+                ReplenishmentAmount = totalString,
+                ReplenishmentDate = RepositoryValueConversions.ToDateTime(entity.ReplenishmentDate),
+                QuantityReplenished = quantity,
+                SellingPrice = entity.SellingPrice,
+                PurchasePrice = entity.PurchasePrice,
+                TotalPurchasePrice = totalString,
+                SupplierName = entity.SupplierName,
+                SupplierPhone = entity.SupplierPhone,
+                Unit = entity.Product?.Stocks?
+                    .OrderByDescending(stock => stock.DateAdded)
+                    .Select(stock => stock.Unit)
+                    .FirstOrDefault() ?? string.Empty,
+                DateAdded = entity.DateAdded,
+                UserAdded = entity.UserAdded,
+                Status = entity.Status
+            };
+        }
+
+        private static string NormalizeUnit(string? unit) =>
+            unit?.Trim().ToLowerInvariant() switch
+            {
+                "kg" or "kgs" or "kilogram" or "kilograms" => "kg",
+                "pc" or "pcs" or "piece" or "pieces" or "pieces (pcs)" => "pcs",
+                _ => unit?.Trim() ?? string.Empty
+            };
     }
 }

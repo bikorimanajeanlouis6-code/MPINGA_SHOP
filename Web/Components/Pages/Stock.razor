@@ -1,0 +1,194 @@
+@page "/Stock"
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.StockServices
+@using Web.Formatting
+@rendermode InteractiveServer
+@inject IStockService StockService
+@inject ILogger<Stock> Logger
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudStack Spacing="3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+            <MudText Typo="Typo.h5">Current Stock</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString"
+                          Placeholder="Search stock"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="me-2" />
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Assessment"
+                       Href="/StockReport">
+                Stock Report
+            </MudButton>
+            <MudButton Variant="Variant.Text"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="LoadStockAsync"
+                       Disabled="@isLoading">
+                Refresh
+            </MudButton>
+        </MudStack>
+
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError)
+        {
+            <MudAlert Severity="Severity.Error">
+                Stock could not be loaded.
+                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="LoadStockAsync">Retry</MudButton>
+            </MudAlert>
+        }
+        else
+        {
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudPaper Class="pa-4 stock-summary" Elevation="1">
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">Stock Entries</MudText>
+                        <MudText Typo="Typo.h5">@FilteredStock.Count</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudPaper Class="pa-4 stock-summary" Elevation="1">
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">Available Quantity</MudText>
+                        <MudText Typo="Typo.body1">@FormatQuantityTotals(FilteredStock, stock => stock.QuantityAvailable)</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudPaper Class="pa-4 stock-summary" Elevation="1">
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">Available Stock Value</MudText>
+                        <MudText Typo="Typo.h5">@FormatMoney(FilteredStock.Sum(stock => stock.QuantityAvailable * stock.LastPrice))</MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <MudDataGrid T="GetStockDTO"
+                         Items="@FilteredStock"
+                         SortMode="SortMode.Multiple"
+                         Dense="true"
+                         Hover="true"
+                         Elevation="1">
+                <Columns>
+                    <TemplateColumn Title="Reference">
+                        <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Stock, context.Item.Id)</CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="stock => stock.StockName" Title="Product" />
+                    <PropertyColumn Property="stock => stock.ProductCategoryName" Title="Category" />
+                    <TemplateColumn Title="Quantity In">
+                        <CellTemplate>@FormatQuantity(context.Item.QuantityInStock, context.Item.Unit)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Quantity Sold">
+                        <CellTemplate>@FormatQuantity(context.Item.QuantitySold, context.Item.Unit)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Available">
+                        <CellTemplate>
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Variant="Variant.Outlined"
+                                     Color="@(context.Item.QuantityAvailable > 0 ? Color.Success : Color.Default)">
+                                @FormatQuantity(context.Item.QuantityAvailable, context.Item.Unit)
+                            </MudChip>
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Selling Price">
+                        <CellTemplate>@FormatMoney(context.Item.SellingPrice)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Purchase Price">
+                        <CellTemplate>@FormatMoney(context.Item.LastPrice)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Stock Value">
+                        <CellTemplate>@FormatMoney(context.Item.QuantityAvailable * context.Item.LastPrice)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Date Added">
+                        <CellTemplate>@context.Item.DateAdded.ToString("dd MMM yyyy HH:mm", CultureInfo.CurrentCulture)</CellTemplate>
+                    </TemplateColumn>
+                    @* @* <PropertyColumn Property="stock => stock.Status" Title="Status" /> *@
+                </Columns> 
+                <NoRecordsContent>
+                    <MudText Class="pa-4" Color="Color.Secondary">
+                        No stock matches your search. Add inventory through Replenishments.
+                    </MudText>
+                </NoRecordsContent>
+                <PagerContent>
+                    <MudDataGridPager T="GetStockDTO" />
+                </PagerContent>
+            </MudDataGrid>
+        }
+    </MudStack>
+</MudContainer>
+
+<style>
+    .stock-summary {
+        height: 100%;
+        border-top: 3px solid var(--mud-palette-primary);
+    }
+</style>
+
+@code {
+    private string _searchString = string.Empty;
+    private List<GetStockDTO> stockItems = new();
+    private bool isLoading;
+    private bool loadError;
+
+    private List<GetStockDTO> FilteredStock =>
+        stockItems
+            .Where(MatchesSearch)
+            .OrderBy(stock => stock.StockName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(stock => stock.Id)
+            .ToList();
+
+    protected override Task OnInitializedAsync() => LoadStockAsync();
+
+    private async Task LoadStockAsync()
+    {
+        isLoading = true;
+        loadError = false;
+        try
+        {
+            stockItems = await StockService.GetAllStocksAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load stock.");
+            loadError = true;
+            Snackbar.Add("Could not load stock.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private bool MatchesSearch(GetStockDTO stock)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        return EntityReferenceFormatter.Format(EntityReferenceType.Stock, stock.Id).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || stock.StockName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || stock.ProductCategoryName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || stock.Unit.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || stock.Status.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || stock.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || stock.QuantityInStock.ToString(CultureInfo.CurrentCulture).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || stock.QuantitySold.ToString(CultureInfo.CurrentCulture).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || stock.QuantityAvailable.ToString(CultureInfo.CurrentCulture).Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string FormatQuantity(int quantity, string? unit) =>
+        $"{quantity.ToString("N0", CultureInfo.CurrentCulture)} {QuantityUnitFormatter.Format(unit)}";
+
+    private static string FormatQuantityTotals(IEnumerable<GetStockDTO> items, Func<GetStockDTO, int> selector) =>
+        string.Join(", ", items
+            .GroupBy(stock => QuantityUnitFormatter.Format(stock.Unit), StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(group => $"{group.Sum(selector).ToString("N0", CultureInfo.CurrentCulture)} {group.Key}"));
+
+    private static string FormatMoney(decimal amount) => $"{MoneyFormatter.Format(amount)} RWF";
+}

@@ -1,3 +1,235 @@
-WELCOME TO OUR SHOPPING 
+@page "/"
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.CustomerServices
+@using Application.Services.SaleItemsServices
+@using Application.Services.SalesServices
+@using Web.Formatting
+@rendermode InteractiveServer
+@inject ISalesService SalesService
+@inject ISaleItemsService SaleItemsService
+@inject ICustomerService CustomerService
+@inject ISnackbar Snackbar
+@inject ILogger<Home> Logger
 
-YOU'RE MOST WELCOME TO OUR SHOPP WE ARE HAPPY TO HAVE YOU HERE. PLEASE ENJOY YOUR SHOP
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4 mb-6">
+    <MudStack Spacing="3">
+        <div>
+            <MudText Typo="Typo.h4" Class="fw-bold">Shop Dashboard</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Sales, products sold, and customer activity
+            </MudText>
+        </div>
+
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError)
+        {
+            <MudAlert Severity="Severity.Error">
+                Dashboard data could not be loaded.
+                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="LoadDashboardAsync" Disabled="@isLoading">
+                    Retry
+                </MudButton>
+            </MudAlert>
+        }
+        else
+        {
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4">
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">Sales recorded</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-bold">@sales.Count</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">Quantity sold</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-bold">@totalQuantitySold.ToString("N0")</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">Customers</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-bold">@customers.Count</MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <MudGrid Spacing="3">
+                <MudItem xs="12" lg="6">
+                    <MudPaper Elevation="1" Class="pa-4 h-100">
+                        <MudText Typo="Typo.h6">Monthly Sales</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                            Sales value in RWF over the last 12 months
+                        </MudText>
+                        @if (hasSales)
+                        {
+                            <MudChart T="double"
+                                      ChartType="ChartType.Bar"
+                                      ChartSeries="@salesChartSeries"
+                                      ChartLabels="@monthLabels"
+                                      Width="100%"
+                                      Height="320px"
+                                      ChartOptions="@chartOptions" />
+                        }
+                        else
+                        {
+                            <MudText Color="Color.Secondary" Class="py-8 text-center">No sales have been recorded yet.</MudText>
+                        }
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" lg="6">
+                    <MudPaper Elevation="1" Class="pa-4 h-100">
+                        <MudText Typo="Typo.h6">Best-Selling Items</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                            Top products by quantity sold
+                        </MudText>
+                        @if (topItemLabels.Length > 0)
+                        {
+                            <MudChart T="double"
+                                      ChartType="ChartType.Bar"
+                                      ChartSeries="@saleItemChartSeries"
+                                      ChartLabels="@topItemLabels"
+                                      Width="100%"
+                                      Height="320px"
+                                      ChartOptions="@chartOptions" />
+                        }
+                        else
+                        {
+                            <MudText Color="Color.Secondary" Class="py-8 text-center">No sale items have been recorded yet.</MudText>
+                        }
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.h6">New Customers</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                            Customers registered over the last 12 months
+                        </MudText>
+                        @if (hasCustomers)
+                        {
+                            <MudChart T="double"
+                                      ChartType="ChartType.Line"
+                                      ChartSeries="@customerChartSeries"
+                                      ChartLabels="@monthLabels"
+                                      Width="100%"
+                                      Height="320px"
+                                      ChartOptions="@chartOptions" />
+                        }
+                        else
+                        {
+                            <MudText Color="Color.Secondary" Class="py-8 text-center">No customers have been registered yet.</MudText>
+                        }
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        }
+    </MudStack>
+</MudContainer>
+
+@code {
+    private List<GetSalesDTO> sales = new();
+    private List<GetSaleItemsDTO> saleItems = new();
+    private List<GetCustomerDTO> customers = new();
+    private List<ChartSeries<double>> salesChartSeries = new();
+    private List<ChartSeries<double>> saleItemChartSeries = new();
+    private List<ChartSeries<double>> customerChartSeries = new();
+    private string[] monthLabels = Array.Empty<string>();
+    private string[] topItemLabels = Array.Empty<string>();
+    private double totalQuantitySold;
+    private bool isLoading = true;
+    private bool loadError;
+    private bool hasSales;
+    private bool hasCustomers;
+
+    private readonly ChartOptions chartOptions = new();
+
+    protected override Task OnInitializedAsync() => LoadDashboardAsync();
+
+    private async Task LoadDashboardAsync()
+    {
+        isLoading = true;
+        loadError = false;
+        try
+        {
+            // These services share a scoped DbContext, so load sequentially.
+            sales = await SalesService.GetAllSalesAsync();
+            saleItems = await SaleItemsService.GetAllSaleItemsAsync();
+            customers = await CustomerService.GetAllCustomerAsync();
+            BuildCharts();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load dashboard data.");
+            loadError = true;
+            Snackbar.Add("Could not load dashboard data.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void BuildCharts()
+    {
+        var firstMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-11);
+        var months = Enumerable.Range(0, 12).Select(firstMonth.AddMonths).ToArray();
+        monthLabels = months.Select(month => month.ToString("MMM yy", CultureInfo.CurrentCulture)).ToArray();
+
+        var monthlySales = months
+            .Select(month => sales
+                .Where(sale => sale.SaleDate.Year == month.Year && sale.SaleDate.Month == month.Month)
+                .Sum(sale => ParseNumber(sale.TotalConsumed)))
+            .ToArray();
+        hasSales = monthlySales.Any(amount => amount > 0);
+        salesChartSeries =
+        [
+            new ChartSeries<double> { Name = "Sales (RWF)", Data = monthlySales }
+        ];
+
+        var topItems = saleItems
+            .Select(item => new
+            {
+                item.SaleItemName,
+                Quantity = ParseNumber(item.SaleItemQuantity)
+            })
+            .Where(item => item.Quantity > 0)
+            .GroupBy(item => item.SaleItemName)
+            .Select(group => new
+            {
+                Name = string.IsNullOrWhiteSpace(group.Key) ? "Unnamed item" : group.Key,
+                Quantity = group.Sum(item => item.Quantity)
+            })
+            .OrderByDescending(item => item.Quantity)
+            .Take(8)
+            .ToArray();
+        topItemLabels = topItems.Select(item => item.Name).ToArray();
+        saleItemChartSeries =
+        [
+            new ChartSeries<double> { Name = "Quantity", Data = topItems.Select(item => (double)item.Quantity).ToArray() }
+        ];
+        totalQuantitySold = saleItems.Sum(item => ParseNumber(item.SaleItemQuantity));
+
+        var monthlyCustomers = months
+            .Select(month => customers.Count(customer =>
+                customer.DateAdded.Year == month.Year && customer.DateAdded.Month == month.Month))
+            .Select(count => (double)count)
+            .ToArray();
+        hasCustomers = monthlyCustomers.Any(count => count > 0);
+        customerChartSeries =
+        [
+            new ChartSeries<double> { Name = "New customers", Data = monthlyCustomers }
+        ];
+    }
+
+    private static double ParseNumber(string? value) =>
+        double.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
+            ? number
+            : double.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out number)
+                ? number
+                : 0;
+}

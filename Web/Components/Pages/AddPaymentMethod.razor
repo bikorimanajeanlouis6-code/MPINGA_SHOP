@@ -1,0 +1,92 @@
+@using Application.DTOs
+@using Application.Services.PaymentMethordServices
+@inject IPaymentMethordService PaymentMethodService
+@inject ISnackbar Snackbar
+@inject ILogger<AddPaymentMethod> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>Add Payment Method</TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="paymentMethod.PaymentMethodName"
+                          Label="Payment Method Name"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Required="true"
+                          RequiredError="Payment method name is required."
+                          AutoFocus="true"
+                          Disabled="@isSaving" />
+            @* <MudSelect T="string"
+                       @bind-Value="paymentMethod.Status"
+                       Label="Status"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Required="true"
+                       RequiredError="Select a status."
+                       Disabled="@isSaving">
+                <MudSelectItem T="string" Value="@ActiveStatus">Active</MudSelectItem>
+                <MudSelectItem T="string" Value="@InactiveStatus">Inactive</MudSelectItem>
+            </MudSelect> *@
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Color="Color.Default"
+                   Disabled="@isSaving">
+            Cancel
+        </MudButton>
+        <MudButton OnClick="SavePaymentMethodAsync"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   Disabled="@isSaving">
+            Save Payment Method
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private const string ActiveStatus = "Active";
+    private const string InactiveStatus = "Inactive";
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm? _form;
+    private readonly AddPaymentMethordDTO paymentMethod = new() { Status = ActiveStatus };
+    private bool isSaving;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SavePaymentMethodAsync()
+    {
+        if (isSaving || _form is null)
+            return;
+
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        isSaving = true;
+        paymentMethod.PaymentMethodName = paymentMethod.PaymentMethodName.Trim();
+        paymentMethod.DateAdded = DateTime.Now;
+        paymentMethod.UserAdded = "System";
+
+        try
+        {
+            await PaymentMethodService.AddPaymentMethordAsync(paymentMethod);
+            Snackbar.Add("Payment method added successfully.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to add a payment method.");
+            Snackbar.Add("Could not add the payment method.", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

@@ -1,0 +1,439 @@
+@page "/IncomeStatement"
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.ExpenseServices
+@using Application.Services.SaleItemsServices
+@using Application.Services.SalesServices
+@using Web.Formatting
+@using Web.Reports
+@rendermode InteractiveServer
+@inject IExpenseService ExpenseService
+@inject ISaleItemsService SaleItemsService
+@inject ISalesService SalesService
+@inject IDialogService DialogService
+@inject ILogger<IncomeStatement> Logger
+@inject ISnackbar Snackbar
+
+<PageTitle>Income Statement</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudStack Spacing="3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="2">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h4">Income Statement</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Income, expenses, and net result for @PeriodLabel
+                </MudText>
+            </MudStack>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudChip T="string"
+                         Color="@(NetResult >= 0 ? Color.Success : Color.Error)"
+                         Variant="Variant.Outlined"
+                         Icon="@Icons.Material.Filled.Assessment">
+                    @(NetResult >= 0 ? "Net surplus" : "Net deficit")
+                </MudChip>
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                           OnClick="OpenPdfDialogAsync"
+                           Disabled="@(!CanGenerateReport)">
+                    Generate PDF
+                </MudButton>
+            </MudStack>
+        </MudStack>
+
+        <MudPaper Class="pa-4 income-statement-filters" Elevation="1">
+            <MudStack Row="true" AlignItems="AlignItems.End" Spacing="3" Wrap="Wrap.Wrap">
+                <MudSelect T="int"
+                           Label="Month"
+                           @bind-Value="selectedMonth"
+                           ToStringFunc="@FormatMonth"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Class="report-filter">
+                    @foreach (var month in Enumerable.Range(0, 13))
+                    {
+                        <MudSelectItem T="int" Value="@month">@FormatMonth(month)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="int"
+                           Label="Year"
+                           @bind-Value="selectedYear"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Class="report-filter">
+                    @foreach (var year in AvailableYears)
+                    {
+                        <MudSelectItem T="int" Value="@year">@year</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="int"
+                           Label="Show"
+                           @bind-Value="selectedClassification"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Class="report-filter">
+                    <MudSelectItem T="int" Value="@AllClassifications">Income and expenses</MudSelectItem>
+                    <MudSelectItem T="int" Value="@IncomeClassification">Income only</MudSelectItem>
+                    <MudSelectItem T="int" Value="@ExpenseClassification">Expenses only</MudSelectItem>
+                </MudSelect>
+                <MudSpacer />
+                <MudButton Variant="Variant.Text"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadReportAsync"
+                           Disabled="@isLoading">
+                    Refresh
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError)
+        {
+            <MudAlert Severity="Severity.Error">
+                The income statement could not be loaded.
+                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="LoadReportAsync">Retry</MudButton>
+            </MudAlert>
+        }
+        else
+        {
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Class="pa-4 income-statement-metric revenue" Elevation="1">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Success">
+                                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" />
+                            </MudAvatar>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Total Income</MudText>
+                                <MudText Typo="Typo.h5" Class="fw-bold">@FormatMoney(IncomeTotal)</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @PeriodIncome.Count transaction(s)
+                                </MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Class="pa-4 income-statement-metric expenses" Elevation="1">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Warning">
+                                <MudIcon Icon="@Icons.Material.Filled.TrendingDown" />
+                            </MudAvatar>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Total Expenses</MudText>
+                                <MudText Typo="Typo.h5" Class="fw-bold">@FormatMoney(ExpenseTotal)</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @PeriodExpenses.Count transaction(s)
+                                </MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Class="pa-4 income-statement-metric net-income" Elevation="1">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="@(NetResult >= 0 ? Color.Success : Color.Error)">
+                                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" />
+                            </MudAvatar>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Net Result</MudText>
+                                <MudText Typo="Typo.h5" Class="fw-bold">@FormatMoney(NetResult)</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Income less expenses</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <MudGrid Spacing="3">
+                <MudItem xs="12" md="4">
+                    <MudPaper Class="income-statement-section" Elevation="1">
+                        <MudText Typo="Typo.h6" Class="pa-4">Expense Breakdown</MudText>
+                        <MudDivider />
+                        <MudTable T="IncomeStatementExpenseCategory"
+                                  Items="@ExpenseCategoryTotals"
+                                  Dense="true"
+                                  Hover="true">
+                            <HeaderContent>
+                                <MudTh>Category</MudTh>
+                                <MudTh Class="text-end">Transactions</MudTh>
+                                <MudTh Class="text-end">Total</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Category">@context.CategoryName</MudTd>
+                                <MudTd DataLabel="Transactions" Class="text-end">@context.Count</MudTd>
+                                <MudTd DataLabel="Total" Class="text-end">@FormatMoney(context.Amount)</MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Class="pa-4" Color="Color.Secondary">No expenses recorded for this period.</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="8">
+                    <MudDataGrid T="IncomeStatementRow"
+                                 Items="@ReportTransactions"
+                                 SortMode="SortMode.Multiple"
+                                 Filterable="true"
+                                 Dense="true"
+                                 Hover="true"
+                                 Elevation="1">
+                        <ToolBarContent>
+                            <MudText Typo="Typo.h6">Statement Transactions</MudText>
+                            <MudSpacer />
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @ReportTransactions.Count record(s)
+                            </MudText>
+                        </ToolBarContent>
+                        <Columns>
+                            <PropertyColumn Property="transaction => transaction.Reference" Title="Reference" />
+                            <TemplateColumn Title="Description">
+                                <CellTemplate>
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.body2">@context.Item.Description</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Item.Category</MudText>
+                                    </MudStack>
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Type">
+                                <CellTemplate>
+                                    <MudChip T="string"
+                                             Size="Size.Small"
+                                             Variant="Variant.Outlined"
+                                             Color="@(context.Item.IsIncome ? Color.Success : Color.Warning)">
+                                        @(context.Item.IsIncome ? "Income" : "Expense")
+                                    </MudChip>
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Date">
+                                <CellTemplate>@context.Item.Date.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)</CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Amount">
+                                <CellTemplate>
+                                    <MudText Typo="Typo.body2" Class="fw-bold">@FormatMoney(context.Item.Amount)</MudText>
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                        <NoRecordsContent>
+                            <MudText Class="pa-4" Color="Color.Secondary">No transactions found for this period.</MudText>
+                        </NoRecordsContent>
+                        <PagerContent>
+                            <MudDataGridPager T="IncomeStatementRow" />
+                        </PagerContent>
+                    </MudDataGrid>
+                </MudItem>
+            </MudGrid>
+        }
+    </MudStack>
+</MudContainer>
+
+<style>
+    .income-statement-filters,
+    .income-statement-section,
+    .income-statement-metric {
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 10px;
+    }
+
+    .income-statement-metric {
+        height: 100%;
+    }
+
+    .income-statement-metric.revenue {
+        border-top: 3px solid var(--mud-palette-success);
+    }
+
+    .income-statement-metric.expenses {
+        border-top: 3px solid var(--mud-palette-warning);
+    }
+
+    .income-statement-metric.net-income {
+        border-top: 3px solid var(--mud-palette-primary);
+    }
+
+    .report-filter {
+        min-width: 180px;
+    }
+</style>
+
+@code {
+    private const int AllClassifications = 0;
+    private const int IncomeClassification = 1;
+    private const int ExpenseClassification = 2;
+
+    private int selectedMonth = DateTime.Today.Month;
+    private int selectedYear = DateTime.Today.Year;
+    private int selectedClassification = AllClassifications;
+    private List<GetSaleItemsDTO> revenueItems = new();
+    private List<GetExpenseDTO> expenses = new();
+    private bool isLoading;
+    private bool loadError;
+
+    private IEnumerable<int> AvailableYears => Enumerable.Range(DateTime.Today.Year - 4, 5).Reverse();
+
+    private string PeriodLabel => selectedMonth == 0
+        ? $"Full Year {selectedYear}"
+        : $"{CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(selectedMonth)} {selectedYear}";
+
+    private bool CanGenerateReport => !isLoading && !loadError;
+
+    private bool IncludesIncome => selectedClassification != ExpenseClassification;
+
+    private bool IncludesExpenses => selectedClassification != IncomeClassification;
+
+    private string SelectionLabel => selectedClassification switch
+    {
+        IncomeClassification => "Income only",
+        ExpenseClassification => "Expenses only",
+        _ => "Income and expenses"
+    };
+
+    private string FormatMonth(int month) => month switch
+    {
+        0 => "All Months (Full Year)",
+        >= 1 and <= 12 => CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(month),
+        _ => string.Empty
+    };
+
+    private List<GetSaleItemsDTO> PeriodIncome => revenueItems
+        .Where(item => IsInSelectedPeriod(item.DateAdded))
+        .OrderByDescending(item => item.DateAdded)
+        .ToList();
+
+    private List<GetExpenseDTO> PeriodExpenses => expenses
+        .Where(expense => IsInSelectedPeriod(expense.ExpenseDate))
+        .OrderByDescending(expense => expense.ExpenseDate)
+        .ToList();
+
+    private decimal IncomeTotal => PeriodIncome.Sum(item => ParseAmount(item.TotalSaleItemPrice));
+    private decimal ExpenseTotal => PeriodExpenses.Sum(expense => expense.ExpenseAmount);
+    private decimal NetResult => IncomeTotal - ExpenseTotal;
+
+    private List<IncomeStatementExpenseCategory> ExpenseCategoryTotals =>
+        PeriodExpenses
+            .GroupBy(expense => string.IsNullOrWhiteSpace(expense.ExpenseTypeName)
+                ? "Uncategorized"
+                : expense.ExpenseTypeName.Trim(), StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(group => new IncomeStatementExpenseCategory(
+                group.Key,
+                group.Count(),
+                group.Sum(expense => expense.ExpenseAmount)))
+            .ToList();
+
+    private List<IncomeStatementRow> PeriodTransactions =>
+        PeriodIncome.Select(item => new IncomeStatementRow(
+                item.DateAdded,
+                EntityReferenceFormatter.Format(EntityReferenceType.SaleItem, item.Id),
+                $"{item.SaleItemName} - {item.CustomerName}",
+                "Sales income",
+                ParseAmount(item.TotalSaleItemPrice),
+                true))
+            .Concat(PeriodExpenses.Select(expense => new IncomeStatementRow(
+                expense.ExpenseDate,
+                EntityReferenceFormatter.Format(EntityReferenceType.Expense, expense.Id),
+                expense.ExpenseName,
+                string.IsNullOrWhiteSpace(expense.ExpenseTypeName) ? "Uncategorized" : expense.ExpenseTypeName,
+                expense.ExpenseAmount,
+                false)))
+            .OrderByDescending(transaction => transaction.Date)
+            .ToList();
+
+    private List<IncomeStatementRow> ReportTransactions => PeriodTransactions
+        .Where(transaction => selectedClassification == AllClassifications
+            || (selectedClassification == IncomeClassification && transaction.IsIncome)
+            || (selectedClassification == ExpenseClassification && !transaction.IsIncome))
+        .ToList();
+
+    protected override Task OnInitializedAsync() => LoadReportAsync();
+
+    private bool IsInSelectedPeriod(DateTime date) =>
+        date.Year == selectedYear && (selectedMonth == 0 || date.Month == selectedMonth);
+
+    private static decimal ParseAmount(string? amount) =>
+        decimal.TryParse(amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : decimal.TryParse(amount, NumberStyles.Number, CultureInfo.CurrentCulture, out value)
+                ? value
+                : 0m;
+
+    private static string FormatMoney(decimal amount) => $"{MoneyFormatter.Format(amount)} RWF";
+
+    private async Task LoadReportAsync()
+    {
+        isLoading = true;
+        loadError = false;
+
+        try
+        {
+            var loadedSales = await SalesService.GetAllSalesAsync();
+            var loadedSaleItems = await SaleItemsService.GetAllSaleItemsAsync();
+            var loadedExpenses = await ExpenseService.GetAllExpenseAsync();
+            var activeSaleIds = loadedSales
+                .Where(sale => string.Equals(sale.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                .Select(sale => sale.Id)
+                .ToHashSet();
+
+            revenueItems = loadedSaleItems
+                .Where(item => activeSaleIds.Contains(item.SalesId)
+                    && string.Equals(item.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            expenses = loadedExpenses
+                .Where(expense => string.Equals(expense.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load data for the income statement.");
+            loadError = true;
+            Snackbar.Add("Could not load the income statement data.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OpenPdfDialogAsync()
+    {
+        if (!CanGenerateReport)
+            return;
+
+        try
+        {
+            var parameters = new DialogParameters<IncomeStatementPdfDialog>
+            {
+                { dialog => dialog.PeriodDescription, PeriodLabel },
+                { dialog => dialog.SelectionLabel, SelectionLabel },
+                { dialog => dialog.IncludeIncome, IncludesIncome },
+                { dialog => dialog.IncludeExpenses, IncludesExpenses },
+                { dialog => dialog.IncomeTotal, IncomeTotal },
+                { dialog => dialog.ExpenseTotal, ExpenseTotal },
+                { dialog => dialog.NetResult, NetResult },
+                { dialog => dialog.Rows, ReportTransactions },
+                { dialog => dialog.ExpenseCategories, IncludesExpenses ? ExpenseCategoryTotals : Array.Empty<IncomeStatementExpenseCategory>() }
+            };
+
+            await DialogService.ShowAsync<IncomeStatementPdfDialog>(
+                "Income Statement PDF",
+                parameters,
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.ExtraLarge,
+                    FullWidth = true
+                });
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not open the income statement PDF dialog.");
+            Snackbar.Add("Could not open the income statement preview.", Severity.Error);
+        }
+    }
+}

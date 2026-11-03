@@ -1,0 +1,246 @@
+@page "/ReplenishmentReport"
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.PaymentServices
+@using Application.Services.ReplenishmentServices
+@using Web.Formatting
+@using Web.Reports
+@rendermode InteractiveServer
+@inject IReplenishmentService ReplenishmentService
+@inject IPaymentService PaymentService
+@inject ILogger<ReplenishmentReport> Logger
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudStack Spacing="3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+            <MudText Typo="Typo.h5">Replenishment Report</MudText>
+            <MudSpacer />
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Print"
+                       data-pdf-print="true"
+                       OnClick="PrintReportAsync"
+                       Disabled="@(!CanGenerateReport)">
+                Print
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       OnClick="DownloadReportAsync"
+                       Disabled="@(!CanGenerateReport)">
+                Download PDF
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/Replenishment" StartIcon="@Icons.Material.Filled.ArrowBack">
+                Replenishments
+            </MudButton>
+        </MudStack>
+
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="4">
+                <MudDatePicker @bind-Date="_fromDate"
+                               Label="From date"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               DateFormat="dd MMM yyyy"
+                               Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudDatePicker @bind-Date="_toDate"
+                               Label="To date"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               DateFormat="dd MMM yyyy"
+                               Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4" Class="d-flex align-center">
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadReportAsync"
+                           Disabled="@isLoading">
+                    Refresh
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+
+        @if (!IsDateRangeValid)
+        {
+            <MudAlert Severity="Severity.Warning">From date must be on or before the to date.</MudAlert>
+        }
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError)
+        {
+            <MudAlert Severity="Severity.Error">
+                Replenishment report could not be loaded.
+                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="LoadReportAsync">Retry</MudButton>
+            </MudAlert>
+        }
+        else if (IsDateRangeValid)
+        {
+            <MudPaper Class="pa-3" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="4">
+                    <MudText><b>@FilteredReplenishments.Count</b> replenishments</MudText>
+                    <MudText>Total amount: <b>@FormatMoney(TotalAmount)</b></MudText>
+                    <MudText>Paid: <b>@FormatMoney(TotalPaid)</b></MudText>
+                    <MudText>Outstanding: <b>@FormatMoney(Math.Max(0m, TotalAmount - TotalPaid))</b></MudText>
+                </MudStack>
+            </MudPaper>
+
+            <MudDataGrid T="GetReplenishmentDTO"
+                         Items="@FilteredReplenishments"
+                         SortMode="SortMode.Multiple"
+                         Dense="true"
+                         Hover="true"
+                         Elevation="1">
+                <Columns>
+                    <TemplateColumn Title="Reference">
+                        <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Replenishment, context.Item.Id)</CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="item => item.ReplenishmentName" Title="Replenishment" />
+                    <PropertyColumn Property="item => item.SupplierName" Title="Supplier" />
+                    <PropertyColumn Property="item => item.SupplierPhone" Title="Phone" />
+                    <TemplateColumn Title="Date">
+                        <CellTemplate>@context.Item.ReplenishmentDate.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Quantity">
+                        <CellTemplate>@context.Item.QuantityReplenished @QuantityUnitFormatter.Format(context.Item.Unit)</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Amount">
+                        <CellTemplate>@FormatMoney(ParseAmount(context.Item.ReplenishmentAmount))</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Paid">
+                        <CellTemplate>@FormatMoney(PaidFor(context.Item.Id))</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Outstanding">
+                        <CellTemplate>@FormatMoney(Math.Max(0m, ParseAmount(context.Item.ReplenishmentAmount) - PaidFor(context.Item.Id)))</CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+                <NoRecordsContent>
+                    <MudText Class="pa-4" Color="Color.Secondary">No replenishments match the selected date range.</MudText>
+                </NoRecordsContent>
+                <PagerContent>
+                    <MudDataGridPager T="GetReplenishmentDTO" />
+                </PagerContent>
+            </MudDataGrid>
+        }
+    </MudStack>
+</MudContainer>
+
+@code {
+    private DateTime? _fromDate;
+    private DateTime? _toDate;
+    private List<GetReplenishmentDTO> replenishments = new();
+    private List<GetPaymentDTO> payments = new();
+    private bool isLoading;
+    private bool loadError;
+
+    private bool IsDateRangeValid =>
+        !_fromDate.HasValue || !_toDate.HasValue || _fromDate.Value.Date <= _toDate.Value.Date;
+
+    private bool CanGenerateReport => !isLoading && !loadError && IsDateRangeValid;
+
+    private List<GetReplenishmentDTO> FilteredReplenishments =>
+        replenishments
+            .Where(item => IsDateInRange(item.ReplenishmentDate))
+            .OrderByDescending(item => item.ReplenishmentDate)
+            .ThenByDescending(item => item.Id)
+            .ToList();
+
+    private decimal TotalAmount => FilteredReplenishments.Sum(item => ParseAmount(item.ReplenishmentAmount));
+    private decimal TotalPaid => FilteredReplenishments.Sum(item => PaidFor(item.Id));
+
+    private string DateRangeDescription
+    {
+        get
+        {
+            if (!_fromDate.HasValue && !_toDate.HasValue)
+                return "All dates";
+            var from = _fromDate?.ToString("dd MMM yyyy", CultureInfo.CurrentCulture) ?? "Any date";
+            var to = _toDate?.ToString("dd MMM yyyy", CultureInfo.CurrentCulture) ?? "Any date";
+            return $"{from} to {to}";
+        }
+    }
+
+    protected override Task OnInitializedAsync() => LoadReportAsync();
+
+    private async Task LoadReportAsync()
+    {
+        isLoading = true;
+        loadError = false;
+        try
+        {
+            var loadedReplenishments = await ReplenishmentService.GetAllReplenishmentsAsync();
+            var loadedPayments = await PaymentService.GetAllPaymentAsync();
+            replenishments = loadedReplenishments;
+            payments = loadedPayments;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load replenishment report.");
+            loadError = true;
+            Snackbar.Add("Could not load the replenishment report.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private bool IsDateInRange(DateTime date) =>
+        IsDateRangeValid
+        && (!_fromDate.HasValue || date.Date >= _fromDate.Value.Date)
+        && (!_toDate.HasValue || date.Date <= _toDate.Value.Date);
+
+    private decimal PaidFor(int replenishmentId) =>
+        payments
+            .Where(payment => payment.ReplenishmentId == replenishmentId
+                && string.Equals(payment.Status, "Active", StringComparison.OrdinalIgnoreCase))
+            .Sum(payment => payment.PaymentAmount);
+
+    private async Task PrintReportAsync()
+    {
+        if (!CanGenerateReport)
+            return;
+
+        try
+        {
+            var pdf = ReplenishmentReportPdfBuilder.CreatePdf(FilteredReplenishments, DateRangeDescription, payments);
+            await JS.InvokeVoidAsync("customerReportDownloads.printPdf", Convert.ToBase64String(pdf));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not print the replenishment report.");
+            Snackbar.Add("Could not open the print dialog.", Severity.Error);
+        }
+    }
+
+    private async Task DownloadReportAsync()
+    {
+        if (!CanGenerateReport)
+            return;
+
+        try
+        {
+            var pdf = ReplenishmentReportPdfBuilder.CreatePdf(FilteredReplenishments, DateRangeDescription, payments);
+            var fileName = $"replenishment-report-{DateTime.Today:yyyyMMdd}.pdf";
+            await JS.InvokeVoidAsync("customerReportDownloads.downloadPdf", Convert.ToBase64String(pdf), fileName);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not generate the replenishment report.");
+            Snackbar.Add("Could not download the replenishment report.", Severity.Error);
+        }
+    }
+
+    private static decimal ParseAmount(string? amount) =>
+        decimal.TryParse(amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : decimal.TryParse(amount, NumberStyles.Number, CultureInfo.CurrentCulture, out value)
+                ? value
+                : 0m;
+
+    private static string FormatMoney(decimal amount) => $"{MoneyFormatter.Format(amount)} RWF";
+}

@@ -1,0 +1,267 @@
+@page "/Account"
+@using Application.DTOs
+@using Application.Services.AccountServices
+@using Web.Formatting
+@rendermode InteractiveServer
+@inject IAccountService AccountService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ILogger<Account> Logger
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudDataGrid T="GetAccountDTO"
+                 Items="@accounts"
+                 SortMode="SortMode.Multiple"
+                 Filterable="true"
+                 QuickFilter="@QuickFilter"
+                 Dense="true"
+                 Hover="true"
+                 Elevation="1"
+                 Loading="@isLoading">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Accounts</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString"
+                          Placeholder="Search accounts"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="me-3" />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenAddAccountAsync">
+                Add Account
+            </MudButton>
+        </ToolBarContent>
+
+        <Columns>
+            <TemplateColumn Title="Reference">
+                <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Account, context.Item.Id)</CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="account => account.AccountName" Title="Account Name" />
+            <PropertyColumn Property="account => account.AccountNumber" Title="Account Number" />
+            <TemplateColumn Title="Balance">
+                <CellTemplate>@MoneyFormatter.Format(context.Item.Balance)</CellTemplate>
+            </TemplateColumn>
+            @* <PropertyColumn Property="account => account.BankName" Title="Bank" /> *@
+            @* <TemplateColumn Title="Status">
+                <CellTemplate>
+                    <MudChip T="string"
+                             Size="Size.Small"
+                             Variant="Variant.Filled"
+                             Color="@GetStatusColor(context.Item.Status)">
+                        @context.Item.Status
+                    </MudChip>
+                </CellTemplate>
+            </TemplateColumn> *@
+            <TemplateColumn Title="Date Added">
+                <CellTemplate>
+                    @context.Item.DateAdded.ToString("dd MMM yyyy")
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="account => account.UserAdded" Title="User Added" />
+            <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                <CellTemplate>
+                    <MudStack Row="true" Spacing="1">
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.History"
+                                   Disabled="@isOpeningHistory"
+                                   OnClick="@(() => OpenHistoryAsync(context.Item))">
+                            Details
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Success"
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Savings"
+                                   Disabled="@isOpeningDeposit"
+                                   OnClick="@(() => OpenDepositAsync(context.Item))">
+                            Deposit
+                        </MudButton>
+                    </MudStack>
+                </CellTemplate>
+            </TemplateColumn>
+            @* <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                <CellTemplate>
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   aria-label="@($"Edit balance for {context.Item.AccountName}")"
+                                   OnClick="@(() => OpenEditBalanceAsync(context.Item))" />
+                </CellTemplate>
+            </TemplateColumn> *@
+        </Columns>
+
+        <PagerContent>
+            <MudDataGridPager T="GetAccountDTO" />
+        </PagerContent>
+    </MudDataGrid>
+</MudContainer>
+
+@code {
+    private string _searchString = string.Empty;
+    private List<GetAccountDTO> accounts = new();
+    private bool isLoading = true;
+    private bool isOpeningDeposit;
+    private bool isOpeningHistory;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAccountsAsync();
+    }
+
+    private async Task LoadAccountsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            accounts = await AccountService.GetAllAccountAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load accounts.");
+            Snackbar.Add("Could not load accounts.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Func<GetAccountDTO, bool> QuickFilter => account =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        return EntityReferenceFormatter.Format(EntityReferenceType.Account, account.Id).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || account.Id.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || account.AccountName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || account.AccountNumber.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || account.Balance.ToString(System.Globalization.CultureInfo.CurrentCulture).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || account.BankName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || account.Status.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || account.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    };
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Inactive" => Color.Error,
+        _ => Color.Default
+    };
+
+    private async Task OpenEditBalanceAsync(GetAccountDTO account)
+    {
+        var parameters = new DialogParameters<EditAccountBalance>
+        {
+            { dialog => dialog.Account, account }
+        };
+        var dialog = await DialogService.ShowAsync<EditAccountBalance>(
+            "Edit Account Balance",
+            parameters,
+            new DialogOptions
+            {
+                CloseButton = true,
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true
+            });
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+            await LoadAccountsAsync();
+    }
+
+    private async Task OpenAddAccountAsync()
+    {
+        var dialog = await DialogService.ShowAsync<AddAccount>(
+            "Add Account",
+            new DialogOptions
+            {
+                CloseButton = true,
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true
+            });
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+            await LoadAccountsAsync();
+    }
+
+    private async Task OpenDepositAsync(GetAccountDTO account)
+    {
+        if (isOpeningDeposit)
+            return;
+
+        isOpeningDeposit = true;
+        try
+        {
+            var parameters = new DialogParameters<DepositAccount>
+            {
+                { dialog => dialog.Account, account }
+            };
+            var dialog = await DialogService.ShowAsync<DepositAccount>(
+                "Deposit to Account",
+                parameters,
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Small,
+                    FullWidth = true
+                });
+            var result = await dialog.Result;
+
+            if (result is not null && !result.Canceled)
+                await LoadAccountsAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open deposit form for account {AccountId}.", account.Id);
+            Snackbar.Add("Could not open the deposit form.", Severity.Error);
+        }
+        finally
+        {
+            isOpeningDeposit = false;
+        }
+    }
+
+    private async Task OpenHistoryAsync(GetAccountDTO account)
+    {
+        if (isOpeningHistory)
+            return;
+
+        isOpeningHistory = true;
+        try
+        {
+            var parameters = new DialogParameters<AccountDetails>
+            {
+                { dialog => dialog.Account, account }
+            };
+            await DialogService.ShowAsync<AccountDetails>(
+                "Account Transaction History",
+                parameters,
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.ExtraLarge,
+                    FullWidth = true
+                });
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open transaction history for account {AccountId}.", account.Id);
+            Snackbar.Add("Could not open account transaction history.", Severity.Error);
+        }
+        finally
+        {
+            isOpeningHistory = false;
+        }
+    }
+}

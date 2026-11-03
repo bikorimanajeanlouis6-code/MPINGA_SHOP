@@ -17,7 +17,10 @@ namespace Infrastructure.Repositories
 
         public async Task<List<GetExpenseTypeDTO>> GetAllExpenseTypeAsync()
         {
-            var entities = await _dbcontext.ExpenseTypes.AsNoTracking().ToListAsync();
+            var entities = await _dbcontext.ExpenseTypes
+                .AsNoTracking()
+                .OrderByDescending(expenseType => expenseType.Id)
+                .ToListAsync();
             return entities.Select(ToDto).ToList();
         }
 

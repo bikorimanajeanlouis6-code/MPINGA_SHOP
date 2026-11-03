@@ -1,0 +1,364 @@
+@page "/SaleOperationsReport"
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.SaleItemsServices
+@using Web.Reports
+@rendermode InteractiveServer
+@inject ISaleItemsService SaleItemsService
+@inject ILogger<SaleOperationsReport> Logger
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudStack Spacing="3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+            <div>
+                <MudText Typo="Typo.h4" Class="fw-bold">Sale Operations Report</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Product sales recorded during the selected period
+                </MudText>
+            </div>
+            <MudSpacer />
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Print"
+                       data-pdf-print="true"
+                       OnClick="PrintReportAsync"
+                       Disabled="@(!CanExportReport)">
+                Print
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       OnClick="DownloadReportAsync"
+                       Disabled="@(!CanExportReport)">
+                Download PDF
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/SaleItems" StartIcon="@Icons.Material.Filled.ArrowBack">
+                Sale Items
+            </MudButton>
+        </MudStack>
+
+        <MudPaper Elevation="1" Class="pa-4">
+            <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                <MudItem xs="12" sm="4" md="3">
+                    <MudSelect T="string"
+                               @bind-Value="selectedPeriod"
+                               Label="Report period"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense">
+                        <MudSelectItem T="string" Value="@DayPeriod">Day</MudSelectItem>
+                        <MudSelectItem T="string" Value="@WeekPeriod">Week</MudSelectItem>
+                        <MudSelectItem T="string" Value="@MonthPeriod">Month</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4" md="3">
+                    <MudDatePicker @bind-Date="_selectedReportDate"
+                                   Label="Report date"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   DateFormat="dd MMM yyyy"
+                                   Clearable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="4" md="3">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.FilterAlt"
+                               OnClick="ApplyReportFilters"
+                               Disabled="@(!CanApplyFilters)">
+                        Show Report
+                    </MudButton>
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @(_hasAppliedFilters ? $"Showing {PeriodDescription}" : "Choose a period and date.")
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError)
+        {
+            <MudAlert Severity="Severity.Error">
+                Sale operations could not be loaded.
+                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="LoadOperationsAsync" Disabled="@isLoading">
+                    Retry
+                </MudButton>
+            </MudAlert>
+        }
+        else if (_hasAppliedFilters)
+        {
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4">
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">Operations</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-bold">@FilteredOperations.Count</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">Products Sold</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-bold">@ProductTotals.Count product types</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">Sales Value</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-bold">@MoneyFormatter.Format(OperationsTotal)</MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            @* <MudPaper Elevation="1" Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Products Sold Summary</MudText>
+                <MudTable T="ProductSalesSummary" Items="@ProductTotals" Dense="true" Hover="true">
+                    <HeaderContent>
+                        <MudTh>Sale Reference</MudTh>
+                        <MudTh>Sale Item Reference</MudTh>
+                        <MudTh>Product</MudTh>
+                        <MudTh>Category</MudTh>
+                        <MudTh>Unit</MudTh>
+                        <MudTh Class="text-right">Quantity Sold</MudTh>
+                        <MudTh Class="text-right">Sales Value</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Product">@context.ProductName</MudTd>
+                        <MudTd DataLabel="Category">@context.CategoryName</MudTd>
+                        <MudTd DataLabel="Unit">@context.Unit</MudTd>
+                        <MudTd DataLabel="Quantity Sold" Class="text-right">@context.QuantitySold.ToString("N0", CultureInfo.CurrentCulture)</MudTd>
+                        <MudTd DataLabel="Sales Value" Class="text-right">@MoneyFormatter.Format(context.SalesValue)</MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText Class="pa-4" Color="Color.Secondary">No products were sold during this period.</MudText>
+                    </NoRecordsContent>
+                </MudTable>
+            </MudPaper> *@
+
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Sale Operation Details</MudText>
+                <MudTable T="GetSaleItemsDTO" Items="@FilteredOperations" Dense="true" Hover="true">
+                    <HeaderContent>
+                        <MudTh>Product</MudTh>
+                        <MudTh>Category</MudTh>
+                        <MudTh>Customer</MudTh>
+                        <MudTh Class="text-right">Unit Price</MudTh>
+                        <MudTh Class="text-right">Quantity</MudTh>
+                        <MudTh Class="text-right">Total</MudTh>
+                        <MudTh>Recorded</MudTh>
+                        <MudTh>User</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Sale Reference">@EntityReferenceFormatter.Format(EntityReferenceType.Sale, context.SalesId)</MudTd>
+                        <MudTd DataLabel="Sale Item Reference">@EntityReferenceFormatter.Format(EntityReferenceType.SaleItem, context.Id)</MudTd>
+                        <MudTd DataLabel="Product">@context.SaleItemName</MudTd>
+                        <MudTd DataLabel="Category">@context.SaleItemCategory</MudTd>
+                        <MudTd DataLabel="Customer">@context.CustomerName</MudTd>
+                        <MudTd DataLabel="Unit Price" Class="text-right">@MoneyFormatter.Format(ParseAmount(context.SaleItemPrice))</MudTd>
+                        <MudTd DataLabel="Quantity" Class="text-right">@FormatQuantity(context.SaleItemQuantity, context.Unit)</MudTd>
+                        <MudTd DataLabel="Total" Class="text-right">@MoneyFormatter.Format(ParseAmount(context.TotalSaleItemPrice))</MudTd>
+                        <MudTd DataLabel="Recorded">@context.DateAdded.ToString("dd MMM yyyy HH:mm", CultureInfo.CurrentCulture)</MudTd>
+                        <MudTd DataLabel="User">@context.UserAdded</MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText Class="pa-4" Color="Color.Secondary">No sale operations were recorded during this period.</MudText>
+                    </NoRecordsContent>
+                </MudTable>
+            </MudPaper>
+        }
+    </MudStack>
+</MudContainer>
+
+@code {
+    private const string DayPeriod = "Day";
+    private const string WeekPeriod = "Week";
+    private const string MonthPeriod = "Month";
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "period")]
+    public string? QueryPeriod { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "date")]
+    public DateTime? QueryDate { get; set; }
+
+    private string selectedPeriod = DayPeriod;
+    private DateTime reportDate = DateTime.Today;
+    private DateTime? _selectedReportDate = DateTime.Today;
+    private List<GetSaleItemsDTO> operations = new();
+    private bool isLoading;
+    private bool loadError;
+    private bool _hasAppliedFilters;
+
+    private bool CanApplyFilters => !isLoading && !loadError && _selectedReportDate.HasValue;
+    private bool CanExportReport => _hasAppliedFilters && !isLoading && !loadError;
+
+    private (DateTime Start, DateTime End) SelectedDateRange
+    {
+        get
+        {
+            var date = (reportDate).Date;
+            return selectedPeriod switch
+            {
+                WeekPeriod => GetWeekRange(date),
+                MonthPeriod => (new DateTime(date.Year, date.Month, 1), new DateTime(date.Year, date.Month, 1).AddMonths(1)),
+                _ => (date, date.AddDays(1))
+            };
+        }
+    }
+
+    private List<GetSaleItemsDTO> FilteredOperations
+    {
+        get
+        {
+            var (start, end) = SelectedDateRange;
+            return operations
+                .Where(operation => operation.DateAdded >= start && operation.DateAdded < end)
+                .OrderBy(operation => operation.DateAdded)
+                .ToList();
+        }
+    }
+
+    private decimal OperationsTotal => FilteredOperations.Sum(operation => ParseAmount(operation.TotalSaleItemPrice));
+
+    private List<ProductSalesSummary> ProductTotals =>
+        FilteredOperations
+            .GroupBy(operation => new
+            {
+                operation.SaleItemName,
+                operation.SaleItemCategory,
+                Unit = string.IsNullOrWhiteSpace(operation.Unit) ? "units" : operation.Unit.Trim()
+            })
+            .Select(group => new ProductSalesSummary(
+                group.Key.SaleItemName,
+                group.Key.SaleItemCategory,
+                group.Key.Unit,
+                group.Sum(operation => ParseQuantity(operation.SaleItemQuantity)),
+                group.Sum(operation => ParseAmount(operation.TotalSaleItemPrice))))
+            .OrderBy(summary => summary.ProductName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private string PeriodDescription
+    {
+        get
+        {
+            var (start, end) = SelectedDateRange;
+            var lastDay = end.AddDays(-1);
+            return start.Date == lastDay.Date
+                ? start.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)
+                : $"{start:dd MMM yyyy} to {lastDay:dd MMM yyyy}";
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (QueryPeriod is DayPeriod or WeekPeriod or MonthPeriod)
+            selectedPeriod = QueryPeriod;
+        if (QueryDate.HasValue)
+        {
+            reportDate = QueryDate.Value.Date;
+            _selectedReportDate = reportDate;
+            _hasAppliedFilters = true;
+        }
+    }
+
+    protected override Task OnInitializedAsync() => LoadOperationsAsync();
+
+    private async Task LoadOperationsAsync()
+    {
+        isLoading = true;
+        loadError = false;
+        try
+        {
+            operations = await SaleItemsService.GetAllSaleItemsAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load sale operations report.");
+            loadError = true;
+            Snackbar.Add("Could not load the sale operations report.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static (DateTime Start, DateTime End) GetWeekRange(DateTime date)
+    {
+        var start = date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
+        return (start, start.AddDays(7));
+    }
+
+    private static decimal ParseAmount(string? amount) =>
+        decimal.TryParse(amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : decimal.TryParse(amount, NumberStyles.Number, CultureInfo.CurrentCulture, out value)
+                ? value
+                : 0m;
+
+    private static string FormatQuantity(string quantity, string unit) =>
+        $"{(int.TryParse(quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value.ToString("N0", CultureInfo.CurrentCulture) : quantity)} {(string.IsNullOrWhiteSpace(unit) ? "units" : unit)}";
+
+    private void ApplyReportFilters()
+    {
+        if (!_selectedReportDate.HasValue)
+            return;
+
+        reportDate = _selectedReportDate.Value.Date;
+        _hasAppliedFilters = true;
+    }
+
+    private async Task DownloadReportAsync()
+    {
+        if (!CanExportReport)
+            return;
+
+        try
+        {
+            var pdf = SaleItemsReportPdfBuilder.CreatePdf(FilteredOperations, PeriodDescription);
+            await JS.InvokeVoidAsync(
+                "customerReportDownloads.downloadPdf",
+                Convert.ToBase64String(pdf),
+                $"sale-operations-{selectedPeriod.ToLowerInvariant()}-{reportDate:yyyyMMdd}.pdf");
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not download the sale operations report.");
+            Snackbar.Add("Could not download the sale operations report.", Severity.Error);
+        }
+    }
+
+    private async Task PrintReportAsync()
+    {
+        if (!CanExportReport)
+            return;
+
+        try
+        {
+            var pdf = SaleItemsReportPdfBuilder.CreatePdf(FilteredOperations, PeriodDescription);
+            await JS.InvokeVoidAsync("customerReportDownloads.printPdf", Convert.ToBase64String(pdf));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not print the sale operations report.");
+            Snackbar.Add("Could not open the print dialog.", Severity.Error);
+        }
+    }
+
+    private static int ParseQuantity(string? quantity) =>
+        int.TryParse(quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : int.TryParse(quantity, NumberStyles.Integer, CultureInfo.CurrentCulture, out value)
+                ? value
+                : 0;
+
+    private sealed record ProductSalesSummary(
+        string ProductName,
+        string CategoryName,
+        string Unit,
+        int QuantitySold,
+        decimal SalesValue);
+}

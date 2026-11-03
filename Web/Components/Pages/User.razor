@@ -1,0 +1,139 @@
+@using Application.DTOs
+@using Application.Services.IdentityServices
+@inject IDialogService DialogService
+@using Domain.ValueObjects
+@page "/Users"
+@inject IIdentityService IdentityService
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4" >
+        <MudDataGrid T="GetUserDTO"
+         MultiSelection="true"
+          Items="@users" 
+          SortMode="SortMode.Multiple"
+          Filterable="true" 
+          QuickFilter="@_quickFilter"
+          Hideable="true" 
+          RowClick="@RowClicked" 
+          RowContextMenuClick="RowRightClicked"
+          SelectedItemsChanged="@SelectedItemsChanged">
+            
+            <ToolBarContent>
+                <MudText Typo="Typo.h6"> Users</MudText>
+                <MudSpacer />
+                <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="d-none d-md-flex">
+                  <MudTextField 
+                    @bind-Value="_searchString" 
+                    Placeholder="Search" 
+                    Adornment="Adornment.Start" 
+                    Immediate="true"
+                    AdornmentIcon="@Icons.Material.Filled.Search" 
+                    IconSize="Size.Medium" 
+                    Variant="Variant.Outlined"
+                    Margin="Margin.Dense"
+                    Class="mt-1 w-100">
+                  </MudTextField>
+                </MudContainer>
+
+          <MudButton Color="Color.Primary" Variant="Variant.Filled" Class="ml-4" @onclick="() => OpenDialogAsync(_closeButton)" >Add Users</MudButton> 
+    </ToolBarContent>
+
+
+    <Columns>
+                <SelectColumn T="GetUserDTO" />
+        <TemplateColumn Title="Reference" Sortable="false" Filterable="false">
+            <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.User, context.Item.Id)</CellTemplate>
+        </TemplateColumn>
+                <PropertyColumn Property="x => x.LastName" />
+                <PropertyColumn Property="x => x.FirstName" />
+                <PropertyColumn Property="x => x.PhoneNumber" />
+                <PropertyColumn Property="x => x.Email" />
+                <propertyColumn Property="x => x.UserName" Title="Username" />
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T="GetUserDTO" />
+            </PagerContent>
+        </MudDataGrid>
+</MudContainer>
+
+@code
+ {
+   
+   private string _searchString = string.Empty;
+        private bool _sortNameByLength = false;
+        private List<string> _events = new();
+       
+          private static Color GetStatusColor(UserStatus status) => status switch
+        {
+            UserStatus.Active => Color.Success,
+            UserStatus.Inactive => Color.Error,
+            _ => Color.Default
+        };
+
+
+         void RowClicked(DataGridRowClickEventArgs<GetUserDTO> args)
+        {
+            _events.Insert(0, $"Event = RowClick, Index = {args.RowIndex}, Data = {System.Text.Json.JsonSerializer.Serialize(args.Item)}");
+        }
+        
+        void RowRightClicked(DataGridRowClickEventArgs<GetUserDTO> args)
+        {
+            _events.Insert(0, $"Event = RowRightClick, Index = {args.RowIndex}, Data = {System.Text.Json.JsonSerializer.Serialize(args.Item)}");
+        }
+
+        void SelectedItemsChanged(HashSet<GetUserDTO> items)
+        {
+            _events.Insert(0, $"Event = SelectedItemsChanged, Data = {System.Text.Json.JsonSerializer.Serialize(items)}");
+        }
+
+         private Func<GetUserDTO, object> _sortBy => x =>
+        {
+            if (_sortNameByLength)
+                return x.FirstName.Length;
+            else
+                return x.FirstName;
+        };
+
+         private Func<GetUserDTO, bool> _quickFilter => x =>
+        {
+            if (string.IsNullOrWhiteSpace(_searchString))
+                return true;
+
+            if (EntityReferenceFormatter.Format(EntityReferenceType.User, x.Id).Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (x.FirstName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (x.UserName.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (x.PhoneNumber.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            return false;
+        };
+
+
+
+        private List<GetUserDTO> users = new List<GetUserDTO>();
+        protected override async Task OnInitializedAsync()
+    {
+        users= await IdentityService.GetAllUsersAsync();
+    }
+
+
+    private readonly DialogOptions _closeButton = new() { CloseButton = true };
+        private async Task OpenDialogAsync(DialogOptions options)
+        {
+            var dialog = await DialogService.ShowAsync<AddUser>("Add New User", options);
+                
+            var result = await dialog.Result;
+
+            if (result is not null && !result.Canceled)
+            {
+                 users= await IdentityService.GetAllUsersAsync();
+            }
+ 
+        }
+     
+}

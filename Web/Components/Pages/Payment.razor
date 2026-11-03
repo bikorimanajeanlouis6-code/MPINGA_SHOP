@@ -1,0 +1,163 @@
+@page "/Payment"
+@using Application.DTOs
+@using Application.Services.PaymentServices
+@using Web.Formatting
+@rendermode InteractiveServer
+@inject IPaymentService PaymentService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ILogger<Payment> Logger
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudDataGrid T="GetPaymentDTO"
+                 Items="@payments"
+                 SortMode="SortMode.Multiple"
+                 Filterable="true"
+                 QuickFilter="@QuickFilter"
+                 Dense="true"
+                 Hover="true"
+                 Elevation="1"
+                 Loading="@isLoading">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Payments</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString"
+                          Placeholder="Search payments"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="me-3" />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenAddPaymentAsync">
+                Add Payment
+            </MudButton>
+        </ToolBarContent>
+
+        <Columns>
+            <TemplateColumn Title="Reference">
+                <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Payment, context.Item.Id)</CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="payment => payment.PaymentName" Title="Payment" />
+            <PropertyColumn Property="payment => payment.CustomerName" Title="Customer" />
+            <TemplateColumn Title="Amount">
+                <CellTemplate>
+                    @($"{MoneyFormatter.Format(context.Item.PaymentAmount)} RWF")
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="payment => payment.PaymentMethodName" Title="Method" />
+            <PropertyColumn Property="payment => payment.AccountName" Title="Account" />
+            <TemplateColumn Title="Payment Date">
+                <CellTemplate>
+                    @context.Item.PaymentDate.ToString("dd MMM yyyy")
+                </CellTemplate>
+            </TemplateColumn>
+          
+            <PropertyColumn Property="payment => payment.UserAdded" Title="Added By" />
+          
+        </Columns>
+
+        <PagerContent>
+            <MudDataGridPager T="GetPaymentDTO" />
+        </PagerContent>
+    </MudDataGrid>
+</MudContainer>
+
+@code {
+    private string _searchString = string.Empty;
+    private List<GetPaymentDTO> payments = new();
+    private bool isLoading = true;
+    private bool isOpeningDialog;
+
+    protected override Task OnInitializedAsync() => LoadPaymentsAsync();
+
+    private async Task LoadPaymentsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            payments = await PaymentService.GetAllPaymentAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load payments.");
+            Snackbar.Add("Could not load payments.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Func<GetPaymentDTO, bool> QuickFilter => payment =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        return EntityReferenceFormatter.Format(EntityReferenceType.Payment, payment.Id).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || payment.Id.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || payment.PaymentName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || payment.CustomerName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || payment.PaymentAmount.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || payment.PaymentMethodName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || payment.AccountName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || payment.PaymentDate.ToString("dd MMM yyyy").Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || payment.PaymentDescription.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || payment.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || payment.Status.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || GetLinkedRecord(payment).Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    };
+
+    private static string GetLinkedRecord(GetPaymentDTO payment)
+    {
+        if (payment.ReplenishmentId.HasValue)
+            return $"Replenishment {EntityReferenceFormatter.Format(EntityReferenceType.Replenishment, payment.ReplenishmentId.Value)}";
+        if (payment.SalesId.HasValue)
+            return $"Sale {EntityReferenceFormatter.Format(EntityReferenceType.Sale, payment.SalesId.Value)}";
+        if (payment.AccountId.HasValue)
+            return $"Account {EntityReferenceFormatter.Format(EntityReferenceType.Account, payment.AccountId.Value)}";
+        return "—";
+    }
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Inactive" => Color.Error,
+        _ => Color.Default
+    };
+
+    private async Task OpenAddPaymentAsync()
+    {
+        if (isOpeningDialog)
+            return;
+
+        isOpeningDialog = true;
+        try
+        {
+            var dialog = await DialogService.ShowAsync<AddPayment>(
+                "Add Payment",
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Small,
+                    FullWidth = true
+                });
+            var result = await dialog.Result;
+            if (result is not null && !result.Canceled)
+                await LoadPaymentsAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open the add-payment dialog.");
+            Snackbar.Add("Could not open the payment form.", Severity.Error);
+        }
+        finally
+        {
+            isOpeningDialog = false;
+        }
+    }
+}

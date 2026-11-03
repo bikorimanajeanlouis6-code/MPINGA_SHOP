@@ -1,6 +1,7 @@
 using Application.Interfaces;
 using Infrastructure.Data;
 using Infrastructure.Repositories;
+using Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +19,10 @@ public static class ServiceContainer
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(connectionString));
 
+        services.AddAuthenticationService(configuration);
+        services.AddHttpContextAccessor();
+        services.AddScoped<IUserContext, UserContext>();
+        services.AddScoped<IIdentity, IdentityRepository>();
         services.AddScoped<IAccount, AccountRepository>();
         services.AddScoped<ICustomer, CustomerRepository>();
         services.AddScoped<IExpense, ExpenseRepository>();

@@ -1,0 +1,180 @@
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.ProductCategoryServices
+@using Application.Services.ProductServices
+@inject IProductService ProductService
+@inject IProductCategoryService ProductCategoryService
+@inject ISnackbar Snackbar
+@inject ILogger<EditProduct> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>Edit Product</TitleContent>
+    <DialogContent>
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError)
+        {
+            <MudAlert Severity="Severity.Error">Product categories could not be loaded.</MudAlert>
+            <MudButton Variant="Variant.Outlined" OnClick="LoadCategoriesAsync" Disabled="@isLoading">Retry</MudButton>
+        }
+        else
+        {
+            <EditForm Model="@product" OnValidSubmit="SaveProductAsync">
+                <DataAnnotationsValidator />
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="product.ProductName"
+                                      Label="Product Name"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Required="true" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="product.ProductDescription"
+                                      Label="Description"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Lines="3" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="decimal"
+                                         @bind-Value="_price"
+                                         Label="Product Price"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         Min="0"
+                                         Format="0.##" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="product.ProductQuantity"
+                                      Label="Quantity"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      InputType="InputType.Number" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudSelect T="int"
+                                   @bind-Value="product.ProductCategoryId"
+                                   Label="Product Category"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Required="true">
+                            @foreach (var category in categories)
+                            {
+                                <MudSelectItem T="int" Value="@category.Id">@category.ProductCategoryName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudSelect T="string"
+                                   @bind-Value="product.Status"
+                                   Label="Status"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense">
+                            <MudSelectItem T="string" Value="@ActiveStatus">Active</MudSelectItem>
+                            <MudSelectItem T="string" Value="@InactiveStatus">Inactive</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+                <div class="d-flex justify-end mt-4">
+                    <MudButton Color="Color.Primary"
+                               ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               StartIcon="@Icons.Material.Filled.Save"
+                               Disabled="@isSaving">
+                        Save Changes
+                    </MudButton>
+                </div>
+            </EditForm>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Disabled="@isSaving">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private const string ActiveStatus = "Active";
+    private const string InactiveStatus = "Inactive";
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public GetProductDTO Product { get; set; } = default!;
+
+    private AddProductDTO product = new();
+    private List<GetProductCategoryDTO> categories = new();
+    private decimal _price;
+    private bool isLoading;
+    private bool isSaving;
+    private bool loadError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        product = new AddProductDTO
+        {
+            Id = Product.Id,
+            ProductName = Product.ProductName,
+            ProductDescription = Product.ProductDescription,
+            ProductPrice = Product.ProductPrice,
+            ProductQuantity = Product.ProductQuantity,
+            ProductCategoryId = Product.ProductCategoryId,
+            Status = Product.Status,
+            UserAdded = Product.UserAdded,
+            DateAdded = Product.DateAdded
+        };
+        _price = decimal.TryParse(Product.ProductPrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : 0m;
+        await LoadCategoriesAsync();
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        isLoading = true;
+        loadError = false;
+        try
+        {
+            categories = await ProductCategoryService.GetAllProductCategoriesAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load product categories for product edit.");
+            loadError = true;
+            Snackbar.Add("Could not load product categories.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveProductAsync()
+    {
+        if (isSaving || isLoading || loadError || product.Id <= 0 || product.ProductCategoryId <= 0)
+            return;
+
+        isSaving = true;
+        product.ProductPrice = _price.ToString(CultureInfo.InvariantCulture);
+        try
+        {
+            await ProductService.UpdateProductAsync(product);
+            Snackbar.Add("Product updated successfully.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to update product {ProductId}.", product.Id);
+            Snackbar.Add("Could not update the product.", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

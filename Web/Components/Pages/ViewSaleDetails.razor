@@ -1,0 +1,175 @@
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.SaleItemsServices
+@using Web.Reports
+@inject ISaleItemsService SaleItemsService
+@inject ILogger<ViewSaleDetails> Logger
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudDialog Class="add-dialog">
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Color="Color.Primary" Size="Size.Medium" />
+            <MudText Typo="Typo.h6" Class="fw-bold">
+                Sale @EntityReferenceFormatter.Format(EntityReferenceType.Sale, Sale.Id) Details
+            </MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <MudPaper Elevation="0" Class="pa-3 mb-4 rounded-lg" Style="background: #f8fafc; border: 1px solid #e2e8f0;">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Customer</MudText>
+                    <MudText Typo="Typo.body1" Class="fw-bold">@Sale.CustomerName</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Sale Date</MudText>
+                    <MudText Typo="Typo.body1">@Sale.SaleDate.ToString("dd MMM yyyy")</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Total</MudText>
+                    <MudText Typo="Typo.body1" Class="fw-bold">@FormatMoney(Sale.TotalConsumed)</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Paid</MudText>
+                    <MudText Typo="Typo.body1">@FormatMoney(Sale.TotalPaid)</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Balance</MudText>
+                    <MudText Typo="Typo.body1" Color="Color.Error" Class="fw-bold">@FormatMoney(Sale.Balance)</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Added By</MudText>
+                    <MudText Typo="Typo.body2">@Sale.UserAdded</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@GetStatusColor(Sale.Status)">
+                        @Sale.Status
+                    </MudChip>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">Products</MudText>
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-2">Could not load this sale's products.</MudAlert>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadItemsAsync" Disabled="@isLoading">
+                Retry
+            </MudButton>
+        }
+        else if (items.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">No product lines are recorded for this sale.</MudText>
+        }
+        else
+        {
+            <MudTable T="GetSaleItemsDTO" Items="@items" Dense="true" Hover="true" Elevation="0" Class="border rounded-lg">
+                <HeaderContent>
+                    <MudTh>Reference</MudTh>
+                    <MudTh>Product</MudTh>
+                    <MudTh>Category</MudTh>
+                    <MudTh class="text-right">Unit Price</MudTh>
+                    <MudTh class="text-center">Quantity</MudTh>
+                    <MudTh class="text-right">Line Total</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Reference">@EntityReferenceFormatter.Format(EntityReferenceType.SaleItem, context.Id)</MudTd>
+                    <MudTd DataLabel="Product">@context.SaleItemName</MudTd>
+                    <MudTd DataLabel="Category">@context.SaleItemCategory</MudTd>
+                    <MudTd DataLabel="Unit Price" Class="text-right">@FormatMoney(context.SaleItemPrice)</MudTd>
+                    <MudTd DataLabel="Quantity" Class="text-center">@FormatQuantity(context.SaleItemQuantity, context.Unit)</MudTd>
+                    <MudTd DataLabel="Line Total" Class="text-right fw-bold">@FormatMoney(context.TotalSaleItemPrice)</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Print"
+                   data-pdf-print="true"
+                   OnClick="PrintSaleAsync"
+                   Disabled="@(isLoading || loadError)">
+            Print
+        </MudButton>
+        <MudButton OnClick="Close" Variant="Variant.Text">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public GetSalesDTO Sale { get; set; } = default!;
+
+    private List<GetSaleItemsDTO> items = new();
+    private bool isLoading;
+    private bool loadError;
+
+    protected override Task OnInitializedAsync() => LoadItemsAsync();
+
+    private async Task LoadItemsAsync()
+    {
+        isLoading = true;
+        loadError = false;
+
+        try
+        {
+            items = (await SaleItemsService.GetAllSaleItemsAsync())
+                .Where(item => item.SalesId == Sale.Id)
+                .ToList();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load items for sale {SaleId}.", Sale.Id);
+            loadError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Inactive" => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string FormatMoney(string amount) =>
+        decimal.TryParse(amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
+            ? MoneyFormatter.Format(value)
+            : MoneyFormatter.Format(amount);
+
+    private static string FormatQuantity(string quantity, string unit) =>
+        $"{(int.TryParse(quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedQuantity) ? parsedQuantity.ToString("N0", CultureInfo.CurrentCulture) : quantity)} {(string.IsNullOrWhiteSpace(unit) ? "units" : unit)}";
+
+    private async Task PrintSaleAsync()
+    {
+        if (isLoading || loadError)
+            return;
+
+        try
+        {
+            var pdf = SaleDetailsPdfBuilder.CreatePdf(Sale, items);
+            await JS.InvokeVoidAsync(
+                "customerReportDownloads.printPdf",
+                Convert.ToBase64String(pdf));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not print sale {SaleId} details.", Sale.Id);
+            Snackbar.Add("Could not open the print dialog.", Severity.Error);
+        }
+    }
+
+    private void Close() => MudDialog.Cancel();
+}

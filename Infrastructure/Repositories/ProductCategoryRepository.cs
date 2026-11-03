@@ -17,7 +17,10 @@ namespace Infrastructure.Repositories
 
         public async Task<List<GetProductCategoryDTO>> GetAllProductCategoriesAsync()
         {
-            var entities = await _dbcontext.ProductCategories.AsNoTracking().ToListAsync();
+            var entities = await _dbcontext.ProductCategories
+                .AsNoTracking()
+                .OrderByDescending(category => category.Id)
+                .ToListAsync();
             return entities.Select(ToDto).ToList();
         }
 

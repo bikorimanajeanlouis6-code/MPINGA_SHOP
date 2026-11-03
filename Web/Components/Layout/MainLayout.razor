@@ -1,4 +1,6 @@
 
+@inject NavigationManager Navigation
+
 @inherits LayoutComponentBase
 
 <MudThemeProvider  @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
@@ -9,13 +11,43 @@
 <MudLayout>
     <MudAppBar>
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        MPINGASHOP
+        MPINGA SHOP
         <MudSpacer/>
         <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
                        Color="Color.Inherit" 
                        Edge="Edge.End"
                        OnClick="ToggleTheme"
                        title="@(_isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")" />
+
+           @if (UserContext.IsAuthenticated)
+        {
+            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                <ActivatorContent>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="cursor-pointer ml-2" @onclick="@context.ToggleAsync">
+                        <MudAvatar Color="Color.Secondary" Size="Size.Small">@UserContext.Initials</MudAvatar>
+                        <div Class="d-sm-none d-md-flex">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body2" Style="line-height: 1.2;">@UserContext.FullName</MudText>
+                                <MudText Typo="Typo.caption" Style="line-height: 1.2; opacity: 0.8;">@UserContext.Email</MudText>
+                            </MudStack>
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" Size="Size.Small" />
+                    </MudStack>
+                </ActivatorContent>
+                <ChildContent>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Person">Profile</MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="HandleLogout">Logout</MudMenuItem>
+                </ChildContent>
+            </MudMenu>
+        }
+        else
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.Logout" 
+                           Color="Color.Inherit" 
+                           OnClick="HandleLogout"
+                           title="Logout" />
+        }
 
     </MudAppBar>
     <MudDrawer @bind-Open="@_drawerOpen">
@@ -27,16 +59,19 @@
 </MudLayout>
 
 @code {
+    private const string DarkRed = "#941F27";
+    private const string DarkRedAppBar = "#811B22";
+
     bool _drawerOpen = true;
 
     private MudTheme _theme = new MudTheme()
     {
         PaletteLight = new PaletteLight()
         {
-            Primary = Colors.Blue.Darken2,           // Deep blue for primary actions
-            Secondary = Colors.Teal.Darken1,         // Teal for secondary actions
-            Tertiary = Colors.Orange.Accent2,         // Orange for accents
-            AppbarBackground = Colors.Blue.Darken3,   // Dark blue appbar
+            Primary = DarkRed,
+            Secondary = Colors.Amber.Darken2,
+            Tertiary = DarkRed,
+            AppbarBackground = DarkRedAppBar,
             Background = Colors.Gray.Lighten5,       // Very light gray background
             Surface = Colors.Shades.White,            // White surface
             DrawerBackground = Colors.Shades.White,   // White drawer
@@ -44,7 +79,7 @@
             Success = Colors.Green.Darken1,           // Success green
             Warning = Colors.Orange.Darken1,          // Warning orange
             Error = Colors.Red.Darken1,                // Error red
-            Info = Colors.Blue.Darken1,                // Info blue
+            Info = Colors.Red.Darken1,
             TextPrimary = Colors.Shades.Black,        // Primary text
             TextSecondary = Colors.Gray.Darken1,      // Secondary text
             Divider = Colors.Gray.Lighten1,          // Divider color
@@ -53,10 +88,10 @@
         },
         PaletteDark = new PaletteDark()
         {
-            Primary = Colors.Blue.Lighten1,          // Light blue for primary actions
-            Secondary = Colors.Teal.Lighten1,        // Light teal for secondary
-            Tertiary = Colors.Orange.Lighten1,       // Light orange for accents
-            AppbarBackground = Colors.Gray.Darken4,   // Very dark gray appbar
+            Primary = DarkRed,
+            Secondary = Colors.Amber.Lighten2,
+            Tertiary = DarkRed,
+            AppbarBackground = DarkRedAppBar,
             Background = Colors.Gray.Darken3,        // Dark gray background
             Surface = Colors.Gray.Darken2,            // Dark surface
             DrawerBackground = Colors.Gray.Darken3,  // Dark drawer
@@ -64,7 +99,7 @@
             Success = Colors.Green.Lighten1,         // Success green
             Warning = Colors.Orange.Lighten1,        // Warning orange
             Error = Colors.Red.Lighten1,              // Error red
-            Info = Colors.Blue.Lighten1,              // Info blue
+            Info = Colors.Red.Lighten1,
             TextPrimary = Colors.Shades.White,       // Primary text
             TextSecondary = Colors.Gray.Lighten1,     // Secondary text
             Divider = Colors.Gray.Darken1,           // Divider color
@@ -84,4 +119,8 @@
         _drawerOpen = !_drawerOpen;
     }
 
+    private void HandleLogout()
+    {
+        Navigation.NavigateTo("/account/logout", forceLoad: true);
+    }
 }

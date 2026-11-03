@@ -1,13 +1,23 @@
-﻿<MudNavMenu Class="mpingashop-nav-menu">
-
-
-<MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.SpaceDashboard">Dashboard</MudNavLink>
-<MudNavLink Href="/products" Icon="@Icons.Material.Filled.ShoppingCart">Products</MudNavLink>
-<MudNavLink Href="/categories" Icon="@Icons.Material.Filled.Category">Product Categories</MudNavLink>
-<MudNavLink Href="/Replenishment" Icon="@Icons.Material.Filled.Inventory2">Replenishments</MudNavLink>
-<MudNavLink Href="/Expenses" Icon="@Icons.Material.Filled.Receipt">Expenses</MudNavLink>
-<MudNavLink Href="/EXPENSECATEGORIES" Icon="@Icons.Material.Filled.List">Expense Types</MudNavLink>
-<MudNavLink Href="/Sales" Icon="@Icons.Material.Filled.PointOfSale">Sales</MudNavLink>
-<MudNavLink Href="/SaleItems" Icon="@Icons.Material.Filled.ShoppingBasket">Sale Items</MudNavLink>
-<MudNavLink Href="/Customer" Icon="@Icons.Material.Filled.People">Customers</MudNavLink>
+<MudNavMenu Class="mpingashop-nav-menu">
+    <div class="nav-brand">
+        <img src="images/mpinga-shop-logo.png" alt="Mpinga Farm Meat Market and Butchery" />
+    </div>
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.SpaceDashboard">Dashboard</MudNavLink>
+    <MudNavLink Href="/Customer" Icon="@Icons.Material.Filled.People">Customers</MudNavLink>
+     <MudNavLink Href="/SaleItems" Icon="@Icons.Material.Filled.ShoppingBasket">Sale Items</MudNavLink>
+     <MudNavLink Href="/Sales" Icon="@Icons.Material.Filled.PointOfSale">Sales</MudNavLink>
+     <MudNavLink Href="/CreditReport" Icon="@Icons.Material.Filled.AccountBalanceWallet">Customer Credits</MudNavLink>
+     <MudNavLink Href="/Payment" Icon="@Icons.Material.Filled.Payment">Payments</MudNavLink>
+    <MudNavLink Href="/products" Icon="@Icons.Material.Filled.ShoppingCart">Products</MudNavLink>
+    <MudNavLink Href="/Replenishment" Icon="@Icons.Material.Filled.Inventory2">Replenishments</MudNavLink>
+    <MudNavLink Href="/Expenses" Icon="@Icons.Material.Filled.Receipt">Expenses</MudNavLink>
+    <MudNavLink Href="/Stock" Icon="@Icons.Material.Filled.Warehouse">Stock</MudNavLink>
+    <MudNavLink Href="/IncomeStatement" Icon="@Icons.Material.Filled.Assessment">Income Statement</MudNavLink>
+    <MudNavLink Href="/Account" Icon="@Icons.Material.Filled.AccountBalance">Accounts</MudNavLink>
+    <MudNavGroup Title="Settings" Icon="@Icons.Material.Filled.Settings">
+       <MudNavLink Href="/EXPENSECATEGORIES" Icon="@Icons.Material.Filled.List">Expense Types</MudNavLink>
+       <MudNavLink Href="/categories" Icon="@Icons.Material.Filled.Category">Product Categories</MudNavLink>
+       <MudNavLink Href="/PaymentMethod" Icon="@Icons.Material.Filled.Payment">Payment Methods</MudNavLink>
+    </MudNavGroup>
+    <MudNavLink Href="/users" Icon="@Icons.Material.Filled.Person">Users</MudNavLink>
 </MudNavMenu>

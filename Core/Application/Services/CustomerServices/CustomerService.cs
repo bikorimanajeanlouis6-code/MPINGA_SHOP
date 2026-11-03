@@ -20,5 +20,6 @@ namespace Application.Services.CustomerServices
 
         public Task AddCustomerAsync(AddCustomerDTO customer) =>
             _customerRepository.AddCustomerAsync(customer);
+
     }
 }

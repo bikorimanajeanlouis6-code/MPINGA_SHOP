@@ -1,7 +1,10 @@
 @using Application.DTOs
+@using Application.Services.AccountServices
 @using Application.Services.ExpenseServices
 @using Application.Services.ExpenseTypeServices
+@using Web.Formatting
 @inject IExpenseService ExpenseService
+@inject IAccountService AccountService
 @inject IExpenseTypeService ExpenseTypeService
 @inject ISnackbar Snackbar
 @inject ILogger<AddExpense> Logger
@@ -18,6 +21,42 @@
                           Margin="Margin.Dense"
                           AutoFocus="true"
                           Class="dialog-input" />
+
+            @if (accountLoadError)
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-3">
+                    Accounts could not be loaded. Retry before saving.
+                </MudAlert>
+                <MudButton OnClick="LoadAccountsAsync"
+                          Variant="Variant.Outlined"
+                          Color="Color.Primary"
+                          Disabled="@isLoading">
+                    Retry loading accounts
+                </MudButton>
+            }
+            else if (accounts.Count == 0 && !accountLoading)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mt-3">
+                    No active accounts are available. Add an account before recording an expense.
+                </MudAlert>
+            }
+
+            <MudSelect T="int?"
+                       @bind-Value="_selectedAccountId"
+                       Label="Pay from account"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Required="true"
+                       RequiredError="Select the account used for this expense."
+                       Disabled="@(accounts.Count == 0 || accountLoading || accountLoadError || isSaving)"
+                       Class="dialog-input">
+                @foreach (var account in accounts)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)account.Id)">
+                        @($"{account.AccountName} (Balance: {MoneyFormatter.Format(account.Balance)} RWF)")
+                    </MudSelectItem>
+                }
+            </MudSelect>
 
             <MudNumericField T="decimal"
                              @bind-Value="expense.ExpenseAmount"
@@ -100,22 +139,56 @@
 
     private readonly AddExpenseDTO expense = new();
     private List<GetExpenseTypeDTO> expenseTypes = new();
+    private List<GetAccountDTO> accounts = new();
     private int? _selectedExpenseTypeId;
+    private int? _selectedAccountId;
     private DateTime? _expenseDate = DateTime.Today;
     private bool isLoading;
     private bool isSaving;
     private bool loadError;
+    private bool accountLoadError;
+    private bool accountLoading;
     private bool hasExpenseType => expenseTypes.Count > 0;
     private bool CanSave =>
         expenseTypes.Count > 0
         && !loadError
         && !isLoading
+        && !accountLoading
+        && !accountLoadError
         && !isSaving
         && _selectedExpenseTypeId.HasValue
+        && _selectedAccountId.HasValue
         && expense.ExpenseAmount > 0
         && _expenseDate.HasValue;
 
-    protected override Task OnInitializedAsync() => LoadExpenseTypesAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadExpenseTypesAsync();
+        await LoadAccountsAsync();
+    }
+
+    private async Task LoadAccountsAsync()
+    {
+        accountLoading = true;
+        accountLoadError = false;
+        try
+        {
+            accounts = (await AccountService.GetAllAccountAsync())
+                .Where(account => string.Equals(account.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(account => account.AccountName)
+                .ToList();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load accounts for a new expense.");
+            accountLoadError = true;
+            Snackbar.Add("Could not load accounts.", Severity.Error);
+        }
+        finally
+        {
+            accountLoading = false;
+        }
+    }
 
     private async Task LoadExpenseTypesAsync()
     {
@@ -147,6 +220,7 @@
 
         isSaving = true;
         expense.ExpenseTypeId = _selectedExpenseTypeId!.Value;
+        expense.AccountId = _selectedAccountId;
         expense.ExpenseDate = _expenseDate.Value;
         expense.DateAdded = DateTime.Now;
         expense.Status = "Active";

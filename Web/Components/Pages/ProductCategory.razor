@@ -34,6 +34,9 @@
         </ToolBarContent>
 
         <Columns>
+            <TemplateColumn Title="Reference">
+                <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.ProductCategory, context.Item.Id)</CellTemplate>
+            </TemplateColumn>
             <PropertyColumn Property="category => category.ProductCategoryName" Title="Product Category Name" />
             <TemplateColumn Title="Date Added">
                 <CellTemplate>
@@ -41,7 +44,7 @@
                 </CellTemplate>
             </TemplateColumn>
             <PropertyColumn Property="category => category.UserAdded" Title="Added By" />
-            <TemplateColumn Title="Status">
+            @* <TemplateColumn Title="Status">
                 <CellTemplate>
                     <MudChip T="string"
                              Size="Size.Small"
@@ -50,7 +53,7 @@
                         @context.Item.Status
                     </MudChip>
                 </CellTemplate>
-            </TemplateColumn>
+            </TemplateColumn> *@
         </Columns>
 
         <PagerContent>
@@ -73,7 +76,8 @@
         if (string.IsNullOrWhiteSpace(_searchString))
             return true;
 
-        return category.ProductCategoryName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+        return EntityReferenceFormatter.Format(EntityReferenceType.ProductCategory, category.Id).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || category.ProductCategoryName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || category.DateAdded.ToString("dd MMM yyyy").Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || category.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || category.Status.Contains(_searchString, StringComparison.OrdinalIgnoreCase);

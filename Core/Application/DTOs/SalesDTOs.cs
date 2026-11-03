@@ -14,6 +14,7 @@ public class AddSalesDTO
 public class GetSalesDTO
 {
     public int Id { get; set; }
+    public int CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string TotalConsumed { get; set; } = string.Empty;
     public string Balance { get; set; } = string.Empty;

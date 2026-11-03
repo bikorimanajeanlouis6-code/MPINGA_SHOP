@@ -18,6 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="wwwroot\images\mpinga-shop-logo.png" LogicalName="Web.Reports.logo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Core\Domain\Domain.csproj" />
     <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
   </ItemGroup>

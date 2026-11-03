@@ -22,6 +22,7 @@ public class GetSaleItemsDTO
     public string TotalSaleItemPrice { get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
     public string SaleItemCategory { get; set; } = string.Empty;
+    public string Unit { get; set; } = string.Empty;
     public DateTime DateAdded { get; set; }
     public string UserAdded { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;

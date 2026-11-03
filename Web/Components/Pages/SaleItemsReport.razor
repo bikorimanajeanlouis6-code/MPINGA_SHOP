@@ -1,0 +1,303 @@
+@page "/SaleItemsReport"
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.SaleItemsServices
+@using Web.Formatting
+@using Web.Reports
+@rendermode InteractiveServer
+@inject ISaleItemsService SaleItemsService
+@inject ILogger<SaleItemsReport> Logger
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudStack Spacing="3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+            <MudText Typo="Typo.h5">Sale Items Report</MudText>
+            <MudSpacer />
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Print"
+                       data-pdf-print="true"
+                       OnClick="PrintReportAsync"
+                       Disabled="@(!CanGenerateReport)">
+                Print
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       OnClick="DownloadReportAsync"
+                       Disabled="@(!CanGenerateReport)">
+                Download PDF
+            </MudButton>
+            <MudButton Variant="Variant.Text" Href="/SaleItems" StartIcon="@Icons.Material.Filled.ArrowBack">
+                Sale Items
+            </MudButton>
+        </MudStack>
+
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="4">
+                <MudDatePicker @bind-Date="_fromDate"
+                               Label="From date"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               DateFormat="dd MMM yyyy"
+                               Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudDatePicker @bind-Date="_toDate"
+                               Label="To date"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               DateFormat="dd MMM yyyy"
+                               Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4" Class="d-flex align-center">
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadReportAsync"
+                           Disabled="@isLoading">
+                    Refresh
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+
+        @if (!IsDateRangeValid)
+        {
+            <MudAlert Severity="Severity.Warning">From date must be on or before the to date.</MudAlert>
+        }
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError)
+        {
+            <MudAlert Severity="Severity.Error">
+                Sale-item report could not be loaded.
+                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="LoadReportAsync">Retry</MudButton>
+            </MudAlert>
+        }
+        else if (IsDateRangeValid)
+        {
+            <MudPaper Class="pa-3" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="4">
+                    <MudText><b>@FilteredItems.Count</b> sale-item lines</MudText>
+                    <MudText><b>@ProductSummaries.Count</b> products sold</MudText>
+                    <MudText><b>@FilteredItems.Sum(ParseQuantity)</b> units sold</MudText>
+                    <MudText><b>@FormatMoney(FilteredItems.Sum(item => ParseAmount(item.TotalSaleItemPrice)))</b> sales value</MudText>
+                </MudStack>
+            </MudPaper>
+
+            <MudPaper Elevation="1">
+                <MudText Typo="Typo.h6" Class="pa-4">Most Frequently Sold Items</MudText>
+                <MudDataGrid T="SoldProductSummary"
+                             Items="@ProductSummaries"
+                             SortMode="SortMode.Multiple"
+                             Dense="true"
+                             Hover="true">
+                    <Columns>
+                        <TemplateColumn Title="Rank">
+                            <CellTemplate>@(ProductSummaries.IndexOf(context.Item) + 1)</CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="item => item.ProductName" Title="Product" />
+                        <PropertyColumn Property="item => item.Category" Title="Category" />
+                        <PropertyColumn Property="item => item.SaleCount" Title="Times Sold" />
+                        <TemplateColumn Title="Quantity Sold">
+                            <CellTemplate>@context.Item.QuantitySold.ToString("N0", CultureInfo.CurrentCulture) @QuantityUnitFormatter.Format(context.Item.Unit)</CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Sales Value">
+                            <CellTemplate>@FormatMoney(context.Item.SalesValue)</CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                    <NoRecordsContent>
+                        <MudText Class="pa-4" Color="Color.Secondary">No items were sold during this date range.</MudText>
+                    </NoRecordsContent>
+                </MudDataGrid>
+            </MudPaper>
+
+            <MudPaper Elevation="1">
+                <MudText Typo="Typo.h6" Class="pa-4">Customers and Sale Details by Date</MudText>
+                <MudDataGrid T="GetSaleItemsDTO"
+                             Items="@FilteredItems"
+                             SortMode="SortMode.Multiple"
+                             Dense="true"
+                             Hover="true">
+                    <Columns>
+                        <TemplateColumn Title="Reference">
+                            <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.SaleItem, context.Item.Id)</CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Sale Reference">
+                            <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Sale, context.Item.SalesId)</CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Date">
+                            <CellTemplate>@context.Item.DateAdded.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)</CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="item => item.CustomerName" Title="Customer" />
+                        <PropertyColumn Property="item => item.SaleItemName" Title="Product" />
+                        <PropertyColumn Property="item => item.SaleItemCategory" Title="Category" />
+                        <TemplateColumn Title="Quantity">
+                            <CellTemplate>@context.Item.SaleItemQuantity @QuantityUnitFormatter.Format(context.Item.Unit)</CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Total">
+                            <CellTemplate>@FormatMoney(ParseAmount(context.Item.TotalSaleItemPrice))</CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                    <NoRecordsContent>
+                        <MudText Class="pa-4" Color="Color.Secondary">No sales match the selected date range.</MudText>
+                    </NoRecordsContent>
+                    <PagerContent>
+                        <MudDataGridPager T="GetSaleItemsDTO" />
+                    </PagerContent>
+                </MudDataGrid>
+            </MudPaper>
+        }
+    </MudStack>
+</MudContainer>
+
+@code {
+    private DateTime? _fromDate;
+    private DateTime? _toDate;
+    private List<GetSaleItemsDTO> saleItems = new();
+    private bool isLoading;
+    private bool loadError;
+
+    private bool IsDateRangeValid =>
+        !_fromDate.HasValue || !_toDate.HasValue || _fromDate.Value.Date <= _toDate.Value.Date;
+
+    private bool CanGenerateReport => !isLoading && !loadError && IsDateRangeValid;
+
+    private List<GetSaleItemsDTO> FilteredItems =>
+        saleItems
+            .Where(item => IsDateInRange(item.DateAdded))
+            .OrderByDescending(item => item.DateAdded)
+            .ToList();
+
+    private List<SoldProductSummary> ProductSummaries =>
+        FilteredItems
+            .GroupBy(item => new
+            {
+                item.ProductId,
+                item.SaleItemName,
+                item.SaleItemCategory,
+                Unit = QuantityUnitFormatter.Format(item.Unit)
+            })
+            .Select(group => new SoldProductSummary(
+                group.Key.SaleItemName,
+                group.Key.SaleItemCategory,
+                group.Key.Unit,
+                group.Count(),
+                group.Sum(ParseQuantity),
+                group.Sum(item => ParseAmount(item.TotalSaleItemPrice))))
+            .OrderByDescending(summary => summary.SaleCount)
+            .ThenByDescending(summary => summary.QuantitySold)
+            .ThenBy(summary => summary.ProductName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private string DateRangeDescription
+    {
+        get
+        {
+            if (!_fromDate.HasValue && !_toDate.HasValue)
+                return "All dates";
+
+            var from = _fromDate?.ToString("dd MMM yyyy", CultureInfo.CurrentCulture) ?? "Any date";
+            var to = _toDate?.ToString("dd MMM yyyy", CultureInfo.CurrentCulture) ?? "Any date";
+            return $"{from} to {to}";
+        }
+    }
+
+    protected override Task OnInitializedAsync() => LoadReportAsync();
+
+    private async Task LoadReportAsync()
+    {
+        isLoading = true;
+        loadError = false;
+        try
+        {
+            saleItems = await SaleItemsService.GetAllSaleItemsAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load sale-item report.");
+            loadError = true;
+            Snackbar.Add("Could not load the sale-item report.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private bool IsDateInRange(DateTime date)
+    {
+        if (!IsDateRangeValid)
+            return false;
+
+        return (!_fromDate.HasValue || date.Date >= _fromDate.Value.Date)
+            && (!_toDate.HasValue || date.Date <= _toDate.Value.Date);
+    }
+
+    private async Task PrintReportAsync()
+    {
+        if (!CanGenerateReport)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "customerReportDownloads.printPdf",
+                Convert.ToBase64String(CreateReportPdf()));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not print the sale-item report.");
+            Snackbar.Add("Could not open the print dialog.", Severity.Error);
+        }
+    }
+
+    private async Task DownloadReportAsync()
+    {
+        if (!CanGenerateReport)
+            return;
+
+        try
+        {
+            var fileName = $"sale-items-report-{DateTime.Today:yyyyMMdd}.pdf";
+            await JS.InvokeVoidAsync(
+                "customerReportDownloads.downloadPdf",
+                Convert.ToBase64String(CreateReportPdf()),
+                fileName);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not generate the sale-item report.");
+            Snackbar.Add("Could not download the sale-item report.", Severity.Error);
+        }
+    }
+
+    private byte[] CreateReportPdf() =>
+        SaleItemsReportPdfBuilder.CreatePdf(FilteredItems, DateRangeDescription);
+
+    private static int ParseQuantity(GetSaleItemsDTO item) =>
+        int.TryParse(item.SaleItemQuantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out var quantity)
+            ? quantity
+            : int.TryParse(item.SaleItemQuantity, NumberStyles.Integer, CultureInfo.CurrentCulture, out quantity)
+                ? quantity
+                : 0;
+
+    private static decimal ParseAmount(string? amount) =>
+        decimal.TryParse(amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : decimal.TryParse(amount, NumberStyles.Number, CultureInfo.CurrentCulture, out value)
+                ? value
+                : 0m;
+
+    private static string FormatMoney(decimal amount) => $"{MoneyFormatter.Format(amount)} RWF";
+
+    private sealed record SoldProductSummary(
+        string ProductName,
+        string Category,
+        string Unit,
+        int SaleCount,
+        int QuantitySold,
+        decimal SalesValue);
+}

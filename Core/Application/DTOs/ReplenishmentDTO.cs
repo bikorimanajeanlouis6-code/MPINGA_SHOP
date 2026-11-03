@@ -14,6 +14,10 @@ public class AddReplenishmentDTO
     public string SupplierName { get; set; } = string.Empty;
     public string SupplierPhone { get; set; } = string.Empty;
     public int ProductId { get; set; }
+    public string Unit { get; set; } = string.Empty;
+    public decimal PaidAmount { get; set; }
+    public int? AccountId { get; set; }
+    public int? PaymentMethodId { get; set; }
     public DateTime DateAdded { get; set; }
     public string UserAdded { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
@@ -31,6 +35,7 @@ public class GetReplenishmentDTO
     public string TotalPurchasePrice { get; set; } = string.Empty;
     public string SupplierName { get; set; } = string.Empty;
     public string SupplierPhone { get; set; } = string.Empty;
+    public string Unit { get; set; } = string.Empty;
     public DateTime DateAdded { get; set; }
     public string UserAdded { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;

@@ -1,0 +1,141 @@
+@using Application.DTOs
+@using Application.Services.CustomerServices
+@using Application.Services.PaymentServices
+@using Application.Services.SalesServices
+@using Web.Formatting
+@inject ICustomerService CustomerService
+@inject ISalesService SalesService
+@inject IPaymentService PaymentService
+@inject ISnackbar Snackbar
+@inject ILogger<CreditStatementDialog> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>Customer Statement</TitleContent>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (_loadError)
+        {
+            <MudAlert Severity="Severity.Error">The customer statement could not be loaded.</MudAlert>
+        }
+        else if (_customer is not null)
+        {
+            <MudStack Spacing="1" Class="mb-4">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle1"><strong>@_customer.CustomerName</strong></MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @EntityReferenceFormatter.Format(EntityReferenceType.Customer, _customer.Id)
+                    </MudText>
+                </MudStack>
+                <MudText Typo="Typo.body2">Phone: @_customer.PhoneNumber</MudText>
+                <MudText Typo="Typo.body2">Total credit used: @MoneyFormatter.Format(_customer.TotalConsumed) RWF</MudText>
+                <MudText Typo="Typo.body2">Outstanding credit: @MoneyFormatter.Format(_customer.Balance) RWF</MudText>
+            </MudStack>
+
+            <MudDataGrid T="StatementEntry"
+                         Items="@_entries"
+                         SortMode="SortMode.None"
+                         Dense="true"
+                         Hover="true">
+                <Columns>
+                    <PropertyColumn Property="entry => entry.Date" Title="Date" Format="dd MMM yyyy" />
+                    <PropertyColumn Property="entry => entry.Description" Title="Transaction" />
+                    <TemplateColumn Title="Debit">
+                        <CellTemplate>@(context.Item.Debit > 0 ? $"{MoneyFormatter.Format(context.Item.Debit)} RWF" : "—")</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Credit">
+                        <CellTemplate>@(context.Item.Credit > 0 ? $"{MoneyFormatter.Format(context.Item.Credit)} RWF" : "—")</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Balance">
+                        <CellTemplate>@($"{MoneyFormatter.Format(context.Item.Balance)} RWF")</CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+                <NoRecordsContent>
+                    <MudText Class="pa-3" Color="Color.Secondary">No sales or payments are recorded for this customer.</MudText>
+                </NoRecordsContent>
+            </MudDataGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Close()" Variant="Variant.Text">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public int CustomerId { get; set; }
+
+    private GetCustomerDTO? _customer;
+    private List<StatementEntry> _entries = new();
+    private bool _isLoading = true;
+    private bool _loadError;
+
+    protected override Task OnInitializedAsync() => LoadStatementAsync();
+
+    private async Task LoadStatementAsync()
+    {
+        _isLoading = true;
+        _loadError = false;
+        _entries.Clear();
+        try
+        {
+            _customer = await CustomerService.GetCustomerByIdAsync(CustomerId);
+            var sales = (await SalesService.GetAllSalesAsync())
+                .Where(sale => sale.CustomerId == CustomerId
+                    && string.Equals(sale.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            var saleIds = sales.Select(sale => sale.Id).ToHashSet();
+            var transactions = new List<StatementEntry>();
+            transactions.AddRange(sales.Select(sale => new StatementEntry(
+                sale.SaleDate,
+                EntityReferenceFormatter.Format(EntityReferenceType.Sale, sale.Id),
+                ParseAmount(sale.TotalConsumed),
+                0m)));
+            transactions.AddRange((await PaymentService.GetAllPaymentAsync())
+                .Where(payment => payment.SalesId.HasValue
+                    && saleIds.Contains(payment.SalesId.Value)
+                    && string.Equals(payment.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                .Select(payment => new StatementEntry(
+                    payment.PaymentDate,
+                    $"{EntityReferenceFormatter.Format(EntityReferenceType.Payment, payment.Id)} for Sale {EntityReferenceFormatter.Format(EntityReferenceType.Sale, payment.SalesId.Value)}",
+                    0m,
+                    payment.PaymentAmount)));
+
+            decimal balance = 0m;
+            foreach (var transaction in transactions.OrderBy(entry => entry.Date).ThenBy(entry => entry.Description))
+            {
+                balance += transaction.Debit - transaction.Credit;
+                _entries.Add(transaction with { Balance = balance });
+            }
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load statement for customer {CustomerId}.", CustomerId);
+            _loadError = true;
+            Snackbar.Add("Could not load the customer statement.", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private static decimal ParseAmount(string? amount) =>
+        decimal.TryParse(amount, System.Globalization.NumberStyles.Number,
+            System.Globalization.CultureInfo.InvariantCulture, out var value)
+            ? value
+            : decimal.TryParse(amount, System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.CurrentCulture, out value)
+                ? value
+                : 0m;
+
+    private sealed record StatementEntry(DateTime Date, string Description, decimal Debit, decimal Credit)
+    {
+        public decimal Balance { get; init; }
+    }
+}

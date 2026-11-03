@@ -17,13 +17,20 @@ namespace Infrastructure.Repositories
 
         public async Task<List<GetStockDTO>> GetAllStockAsync()
         {
-            var entities = await _dbcontext.Stocks.AsNoTracking().ToListAsync();
+            var entities = await _dbcontext.Stocks
+                .AsNoTracking()
+                .Include(stock => stock.Product)
+                    .ThenInclude(product => product!.ProductCategory)
+                .OrderByDescending(stock => stock.Id)
+                .ToListAsync();
             return entities.Select(ToDto).ToList();
         }
 
         public async Task<GetStockDTO> GetStockByIdAsync(int id)
         {
             var entity = await _dbcontext.Stocks.AsNoTracking()
+                .Include(stock => stock.Product)
+                    .ThenInclude(product => product!.ProductCategory)
                 .FirstOrDefaultAsync(stock => stock.Id == id);
             return entity is null
                 ? throw new KeyNotFoundException($"Stock with ID {id} was not found.")
@@ -54,7 +61,9 @@ namespace Infrastructure.Repositories
         private static GetStockDTO ToDto(Stock entity) => new()
         {
             Id = entity.Id,
+            ProductId = entity.ProductId,
             StockName = entity.StockName,
+            ProductCategoryName = entity.Product?.ProductCategory?.ProductCategoryName ?? string.Empty,
             QuantityInStock = RepositoryValueConversions.ToInt32(entity.QuantityInStock),
             QuantitySold = RepositoryValueConversions.ToInt32(entity.QuantitySold),
             QuantityAvailable = RepositoryValueConversions.ToInt32(entity.QuantityAvailable),

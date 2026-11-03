@@ -8,6 +8,7 @@ public class AddExpenseDTO
     public DateTime ExpenseDate { get; set; }
     public string ExpenseDescription { get; set; } = string.Empty;
     public int ExpenseTypeId { get; set; }
+    public int? AccountId { get; set; }
     public DateTime DateAdded { get; set; }
     public string UserAdded { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
@@ -21,6 +22,8 @@ public class GetExpenseDTO
     public DateTime ExpenseDate { get; set; }
     public string ExpenseTypeName { get; set; } = string.Empty;
     public string ExpenseDescription { get; set; } = string.Empty;
+    public string AccountName { get; set; } = string.Empty;
+    public int? AccountId { get; set; }
     public DateTime DateAdded { get; set; }
     public string UserAdded { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;

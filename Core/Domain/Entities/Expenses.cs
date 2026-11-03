@@ -9,10 +9,12 @@ public class Expenses
     public string UserAdded { get; set; } 
     public string Status { get; set; } 
     public int ExpenseTypeId { get; set; }
+    public int? AccountId { get; set; }
 
 
    
     public ExpenseType ExpenseType { get; set; }
+    public Account? Account { get; set; }
 
     
 }

@@ -20,6 +20,7 @@ namespace Infrastructure.Repositories
             var entities = await _dbcontext.Sales
                 .AsNoTracking()
                 .Include(sale => sale.Customer)
+                .OrderByDescending(sale => sale.Id)
                 .ToListAsync();
             return entities.Select(ToDto).ToList();
         }
@@ -53,6 +54,7 @@ namespace Infrastructure.Repositories
         private static GetSalesDTO ToDto(Sales entity) => new()
         {
             Id = entity.Id,
+            CustomerId = entity.CustomerId,
             CustomerName = entity.Customer?.Name ?? string.Empty,
             TotalConsumed = entity.TotalConsumed,
             Balance = entity.Balance,

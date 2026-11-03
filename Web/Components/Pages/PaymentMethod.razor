@@ -1,0 +1,137 @@
+@page "/PaymentMethod"
+@using Application.DTOs
+@using Application.Services.PaymentMethordServices
+@rendermode InteractiveServer
+@inject IPaymentMethordService PaymentMethodService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ILogger<PaymentMethod> Logger
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudDataGrid T="GetPaymentMethordDTO"
+                 Items="@paymentMethods"
+                 SortMode="SortMode.Multiple"
+                 Filterable="true"
+                 QuickFilter="@QuickFilter"
+                 Dense="true"
+                 Hover="true"
+                 Elevation="1"
+                 Loading="@isLoading">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Payment Methods</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString"
+                          Placeholder="Search payment methods"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="me-3" />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenAddPaymentMethodAsync"
+                       Disabled="@isOpeningDialog">
+                Add Payment Method
+            </MudButton>
+        </ToolBarContent>
+
+        <Columns>
+            <TemplateColumn Title="Reference">
+                <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.PaymentMethod, context.Item.Id)</CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="method => method.PaymentMethodName" Title="Payment Method" />
+          
+            <TemplateColumn Title="Date Added">
+                <CellTemplate>
+                    @context.Item.DateAdded.ToString("dd MMM yyyy")
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="method => method.UserAdded" Title="Added By" />
+        </Columns>
+
+        <PagerContent>
+            <MudDataGridPager T="GetPaymentMethordDTO" />
+        </PagerContent>
+    </MudDataGrid>
+</MudContainer>
+
+@code {
+    private string _searchString = string.Empty;
+    private List<GetPaymentMethordDTO> paymentMethods = new();
+    private bool isLoading = true;
+    private bool isOpeningDialog;
+
+    protected override Task OnInitializedAsync() => LoadPaymentMethodsAsync();
+
+    private async Task LoadPaymentMethodsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            paymentMethods = await PaymentMethodService.GetAllPaymentMethordAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load payment methods.");
+            Snackbar.Add("Could not load payment methods.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Func<GetPaymentMethordDTO, bool> QuickFilter => method =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        return EntityReferenceFormatter.Format(EntityReferenceType.PaymentMethod, method.Id).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || method.Id.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || method.PaymentMethodName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || method.Status.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || method.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || method.DateAdded.ToString("dd MMM yyyy").Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    };
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Inactive" => Color.Error,
+        _ => Color.Default
+    };
+
+    private async Task OpenAddPaymentMethodAsync()
+    {
+        if (isOpeningDialog)
+            return;
+
+        isOpeningDialog = true;
+        try
+        {
+            var dialog = await DialogService.ShowAsync<AddPaymentMethod>(
+                "Add Payment Method",
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Small,
+                    FullWidth = true
+                });
+            var result = await dialog.Result;
+            if (result is not null && !result.Canceled)
+                await LoadPaymentMethodsAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open the add-payment-method dialog.");
+            Snackbar.Add("Could not open the payment method form.", Severity.Error);
+        }
+        finally
+        {
+            isOpeningDialog = false;
+        }
+    }
+}

@@ -16,11 +16,24 @@
                                   Variant="Variant.Outlined"
                                   Margin="Margin.Dense" />
                 </MudItem>
-                <MudItem xs="12">
+                @* <MudItem xs="12">
                     <MudTextField @bind-Value="customer.Email"
                                   Label="Email"
                                   Variant="Variant.Outlined"
-                                  Margin="Margin.Dense" />
+                                  Margin="Margin.Dense" /> 
+                 </MudItem> *@
+                <MudItem xs="12">
+                    <MudSelect T="string"
+                               @bind-Value="customer.Sex"
+                               For="@(() => customer.Sex)"
+                               Label="Sex"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Required="true">
+                        <MudSelectItem T="string" Value="@Male">Male</MudSelectItem>
+                        <MudSelectItem T="string" Value="@Female">Female</MudSelectItem>
+                    </MudSelect>
+                    <ValidationMessage For="@(() => customer.Sex)" />
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="customer.PhoneNumber"
@@ -46,6 +59,9 @@
 </MudDialog>
 
 @code {
+    private const string Male = "Male";
+    private const string Female = "Female";
+
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 

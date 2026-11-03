@@ -34,6 +34,9 @@
         </ToolBarContent>
 
         <Columns>
+            <TemplateColumn Title="Reference">
+                <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.ExpenseType, context.Item.Id)</CellTemplate>
+            </TemplateColumn>
             <PropertyColumn Property="expenseType => expenseType.ExpenseTypeName" Title="Expense Type Name" />
             <PropertyColumn Property="expenseType => expenseType.ExpenseTypeDescription" Title="Description" />
             <TemplateColumn Title="Date Added">
@@ -42,7 +45,7 @@
                 </CellTemplate>
             </TemplateColumn>
             <PropertyColumn Property="expenseType => expenseType.UserAdded" Title="Added By" />
-            <TemplateColumn Title="Status">
+            @* <TemplateColumn Title="Status">
                 <CellTemplate>
                     <MudChip T="string"
                              Size="Size.Small"
@@ -51,7 +54,7 @@
                         @context.Item.Status
                     </MudChip>
                 </CellTemplate>
-            </TemplateColumn>
+            </TemplateColumn> *@
         </Columns>
 
         <PagerContent>
@@ -74,7 +77,8 @@
         if (string.IsNullOrWhiteSpace(_searchString))
             return true;
 
-        return expenseType.ExpenseTypeName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+        return EntityReferenceFormatter.Format(EntityReferenceType.ExpenseType, expenseType.Id).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || expenseType.ExpenseTypeName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || expenseType.ExpenseTypeDescription.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || expenseType.DateAdded.ToString("dd MMM yyyy").Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || expenseType.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase)

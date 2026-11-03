@@ -10,6 +10,7 @@ using Application.Services.ReplenishmentServices;
 using Application.Services.SaleItemsServices;
 using Application.Services.SalesServices;
 using Application.Services.StockServices;
+using Application.Services.IdentityServices;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application.DependanceInjection;
@@ -30,6 +31,7 @@ public static class ServiceContainer
         services.AddTransient<ISaleItemsService, SaleItemsService>();
         services.AddTransient<ISalesService, SalesService>();
         services.AddTransient<IStockService, StockService>();
+        services.AddTransient<IIdentityService, IdentityService>();
 
         return services;
     }
