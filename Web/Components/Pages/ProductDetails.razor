@@ -1,0 +1,133 @@
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.ProductServices
+@using Web.Formatting
+@inject IProductService ProductService
+@inject ILogger<ProductDetails> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" Size="Size.Medium" />
+            <MudText Typo="Typo.h6" Class="fw-bold">Product Details</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError || product is null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-2">Could not load product details.</MudAlert>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadProductAsync" Disabled="@isLoading">
+                Retry
+            </MudButton>
+        }
+        else
+        {
+            <MudPaper Elevation="0" Class="pa-3 rounded-lg" Style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                <MudStack Spacing="2">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6" Class="fw-bold">@product.ProductName</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @EntityReferenceFormatter.Format(EntityReferenceType.Product, product.Id)
+                        </MudText>
+                    </MudStack>
+                    <MudDivider />
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Description</MudText>
+                            <MudText Typo="Typo.body1">
+                                @(string.IsNullOrWhiteSpace(product.ProductDescription) ? "No description provided." : product.ProductDescription)
+                            </MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Price</MudText>
+                            <MudText Typo="Typo.body1" Class="fw-bold">@MoneyFormatter.Format(product.ProductPrice) RWF</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Quantity</MudText>
+                            <MudText Typo="Typo.body1">@FormatQuantity(product.ProductQuantity)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Category</MudText>
+                            <MudText Typo="Typo.body1">@product.ProductCategoryName</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Category reference</MudText>
+                            <MudText Typo="Typo.body1">@EntityReferenceFormatter.Format(EntityReferenceType.ProductCategory, product.ProductCategoryId)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Date added</MudText>
+                            <MudText Typo="Typo.body1">@product.DateAdded.ToString("dd MMM yyyy HH:mm", CultureInfo.CurrentCulture)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Added by (login email)</MudText>
+                            <MudText Typo="Typo.body1">
+                                @(string.IsNullOrWhiteSpace(product.UserAdded) ? "Email not recorded" : product.UserAdded)
+                            </MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@GetStatusColor(product.Status)">
+                                @product.Status
+                            </MudChip>
+                        </MudItem>
+                    </MudGrid>
+                </MudStack>
+            </MudPaper>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Variant="Variant.Text">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public int ProductId { get; set; }
+
+    private GetProductDTO? product;
+    private bool isLoading;
+    private bool loadError;
+
+    protected override Task OnInitializedAsync() => LoadProductAsync();
+
+    private async Task LoadProductAsync()
+    {
+        isLoading = true;
+        loadError = false;
+
+        try
+        {
+            product = await ProductService.GetProductByIdAsync(ProductId);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load product {ProductId}.", ProductId);
+            loadError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Inactive" => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string FormatQuantity(string quantity) =>
+        int.TryParse(quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedQuantity)
+            ? parsedQuantity.ToString("N0", CultureInfo.CurrentCulture)
+            : quantity;
+
+    private void Close() => MudDialog.Cancel();
+}

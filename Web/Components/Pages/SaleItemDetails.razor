@@ -1,0 +1,142 @@
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.SaleItemsServices
+@using Web.Formatting
+@inject ISaleItemsService SaleItemsService
+@inject ILogger<SaleItemDetails> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Color="Color.Primary" Size="Size.Medium" />
+            <MudText Typo="Typo.h6" Class="fw-bold">Sale Item Details</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError || saleItem is null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-2">Could not load sale item details.</MudAlert>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadSaleItemAsync" Disabled="@isLoading">
+                Retry
+            </MudButton>
+        }
+        else
+        {
+            <MudPaper Elevation="0" Class="pa-3 rounded-lg" Style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                <MudStack Spacing="2">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6" Class="fw-bold">@saleItem.SaleItemName</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @EntityReferenceFormatter.Format(EntityReferenceType.SaleItem, saleItem.Id)
+                        </MudText>
+                    </MudStack>
+                    <MudDivider />
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Customer</MudText>
+                            <MudText Typo="Typo.body1">@saleItem.CustomerName</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Sale reference</MudText>
+                            <MudText Typo="Typo.body1">@EntityReferenceFormatter.Format(EntityReferenceType.Sale, saleItem.SalesId)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Category</MudText>
+                            <MudText Typo="Typo.body1">@saleItem.SaleItemCategory</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Product reference</MudText>
+                            <MudText Typo="Typo.body1">@EntityReferenceFormatter.Format(EntityReferenceType.Product, saleItem.ProductId)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Unit price</MudText>
+                            <MudText Typo="Typo.body1">@MoneyFormatter.Format(saleItem.SaleItemPrice)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Quantity</MudText>
+                            <MudText Typo="Typo.body1">@FormatQuantity(saleItem.SaleItemQuantity, saleItem.Unit)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Line total</MudText>
+                            <MudText Typo="Typo.body1" Class="fw-bold">@MoneyFormatter.Format(saleItem.TotalSaleItemPrice)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Date added</MudText>
+                            <MudText Typo="Typo.body1">@saleItem.DateAdded.ToString("dd MMM yyyy HH:mm", CultureInfo.CurrentCulture)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Added by</MudText>
+                            <MudText Typo="Typo.body1">@saleItem.UserAdded</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@GetStatusColor(saleItem.Status)">
+                                @saleItem.Status
+                            </MudChip>
+                        </MudItem>
+                    </MudGrid>
+                </MudStack>
+            </MudPaper>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Variant="Variant.Text">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public int SaleItemId { get; set; }
+
+    private GetSaleItemsDTO? saleItem;
+    private bool isLoading;
+    private bool loadError;
+
+    protected override Task OnInitializedAsync() => LoadSaleItemAsync();
+
+    private async Task LoadSaleItemAsync()
+    {
+        isLoading = true;
+        loadError = false;
+
+        try
+        {
+            saleItem = await SaleItemsService.GetSaleItemsByIdAsync(SaleItemId);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load sale item {SaleItemId}.", SaleItemId);
+            loadError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Inactive" => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string FormatQuantity(string quantity, string unit)
+    {
+        var formattedQuantity = int.TryParse(quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedQuantity)
+            ? parsedQuantity.ToString("N0", CultureInfo.CurrentCulture)
+            : quantity;
+
+        var formattedUnit = QuantityUnitFormatter.Format(unit);
+        return $"{formattedQuantity} {formattedUnit}";
+    }
+
+    private void Close() => MudDialog.Cancel();
+}

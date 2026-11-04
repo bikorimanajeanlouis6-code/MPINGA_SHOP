@@ -4,6 +4,8 @@
 @using Application.Services.ProductServices
 @using Web.Formatting
 @rendermode InteractiveServer
+ @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]  
 @inject IProductService ProductService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -42,7 +44,7 @@
                 <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Product, context.Item.Id)</CellTemplate>
             </TemplateColumn>
             <PropertyColumn Property="product => product.ProductName" Title="Product Name" />
-            <PropertyColumn Property="product => product.ProductDescription" Title="Description" />
+            @* <PropertyColumn Property="product => product.ProductDescription" Title="Description" /> *@
             <TemplateColumn Title="Price">
                 <CellTemplate>
                     @{
@@ -55,18 +57,25 @@
             </TemplateColumn>
             <PropertyColumn Property="product => product.ProductQuantity" Title="Quantity" />
             <PropertyColumn Property="product => product.ProductCategoryName" Title="Category" />
-            <TemplateColumn Title="Date Added">
+            @* <TemplateColumn Title="Date Added">
                 <CellTemplate>
                     @context.Item.DateAdded.ToString("dd MMM yyyy")
                 </CellTemplate>
             </TemplateColumn>
-            <PropertyColumn Property="product => product.UserAdded" Title="Added By" />
+            <PropertyColumn Property="product => product.UserAdded" Title="Added By" /> *@
             <TemplateColumn Title="Actions">
                 <CellTemplate>
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   aria-label="@($"View details for product {context.Item.Id}")"
+                                   Disabled="@isOpeningDialog"
+                                   OnClick="@(() => OpenProductDetailsAsync(context.Item))" />
                     <MudButton Variant="Variant.Outlined"
                                Color="Color.Primary"
                                Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.Edit"
+                               Disabled="@isOpeningDialog"
                                OnClick="@(() => OpenEditProductAsync(context.Item))">
                         Edit
                     </MudButton>
@@ -162,6 +171,40 @@
         {
             Logger.LogError(exception, "Failed to open the add-product dialog.");
             Snackbar.Add("Could not open the product form.", Severity.Error);
+        }
+        finally
+        {
+            isOpeningDialog = false;
+        }
+    }
+
+    private async Task OpenProductDetailsAsync(GetProductDTO product)
+    {
+        if (isOpeningDialog)
+            return;
+
+        isOpeningDialog = true;
+        try
+        {
+            var dialog = await DialogService.ShowAsync<ProductDetails>(
+                "Product Details",
+                new DialogParameters<ProductDetails>
+                {
+                    { component => component.ProductId, product.Id }
+                },
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Small,
+                    FullWidth = true
+                });
+            await dialog.Result;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open details for product {ProductId}.", product.Id);
+            Snackbar.Add("Could not open product details.", Severity.Error);
         }
         finally
         {

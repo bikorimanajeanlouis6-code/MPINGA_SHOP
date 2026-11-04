@@ -3,8 +3,12 @@
 @using Application.Services.ExpenseServices
 @using Web.Formatting
 @rendermode InteractiveServer
+ @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]  
 @inject IExpenseService ExpenseService
 @inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ILogger<Expenses> Logger
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudDataGrid T="GetExpenseDTO"
@@ -50,7 +54,17 @@
                     @context.Item.ExpenseDate.ToString("dd MMM yyyy")
                 </CellTemplate>
             </TemplateColumn>
-            <PropertyColumn Property="expense => expense.UserAdded" Title="User Added" />
+            @* <PropertyColumn Property="expense => expense.UserAdded" Title="User Added" /> *@
+            <TemplateColumn Title="Details" Sortable="false" Filterable="false">
+                <CellTemplate>
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   aria-label="@($"View details for expense {context.Item.Id}")"
+                                   Disabled="@isOpeningDialog"
+                                   OnClick="@(() => OpenExpenseDetailsAsync(context.Item))" />
+                </CellTemplate>
+            </TemplateColumn>
         </Columns>
 
         <PagerContent>
@@ -62,6 +76,7 @@
 @code {
     private string _searchString = string.Empty;
     private List<GetExpenseDTO> expenses = new();
+    private bool isOpeningDialog;
 
     protected override async Task OnInitializedAsync()
     {
@@ -84,18 +99,68 @@
 
     private async Task OpenAddExpenseAsync()
     {
-        var dialog = await DialogService.ShowAsync<AddExpense>(
-            "Add Expense",
-            new DialogOptions
-            {
-                CloseButton = true,
-                CloseOnEscapeKey = true,
-                MaxWidth = MaxWidth.Small,
-                FullWidth = true
-            });
-        var result = await dialog.Result;
+        if (isOpeningDialog)
+            return;
 
-        if (result is not null && !result.Canceled)
-            expenses = await ExpenseService.GetAllExpenseAsync();
+        isOpeningDialog = true;
+        try
+        {
+            var dialog = await DialogService.ShowAsync<AddExpense>(
+                "Add Expense",
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Small,
+                    FullWidth = true
+                });
+            var result = await dialog.Result;
+
+            if (result is not null && !result.Canceled)
+                expenses = await ExpenseService.GetAllExpenseAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open or complete the add-expense dialog.");
+            Snackbar.Add("Could not open the expense form.", Severity.Error);
+        }
+        finally
+        {
+            isOpeningDialog = false;
+        }
+    }
+
+    private async Task OpenExpenseDetailsAsync(GetExpenseDTO expense)
+    {
+        if (isOpeningDialog)
+            return;
+
+        isOpeningDialog = true;
+        try
+        {
+            var dialog = await DialogService.ShowAsync<ExpenseDetails>(
+                "Expense Details",
+                new DialogParameters<ExpenseDetails>
+                {
+                    { component => component.ExpenseId, expense.Id }
+                },
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Small,
+                    FullWidth = true
+                });
+            await dialog.Result;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open details for expense {ExpenseId}.", expense.Id);
+            Snackbar.Add("Could not open expense details.", Severity.Error);
+        }
+        finally
+        {
+            isOpeningDialog = false;
+        }
     }
 }

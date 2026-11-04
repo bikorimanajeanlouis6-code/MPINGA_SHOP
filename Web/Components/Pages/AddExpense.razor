@@ -224,6 +224,7 @@
         expense.ExpenseDate = _expenseDate.Value;
         expense.DateAdded = DateTime.Now;
         expense.Status = "Active";
+        expense.UserAdded = UserContext.Email;
 
         try
         {

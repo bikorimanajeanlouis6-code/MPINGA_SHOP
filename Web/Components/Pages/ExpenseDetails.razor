@@ -1,0 +1,131 @@
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.ExpenseServices
+@using Web.Formatting
+@inject IExpenseService ExpenseService
+@inject ILogger<ExpenseDetails> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Color="Color.Primary" Size="Size.Medium" />
+            <MudText Typo="Typo.h6" Class="fw-bold">Expense Details</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError || expense is null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-2">Could not load expense details.</MudAlert>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadExpenseAsync" Disabled="@isLoading">
+                Retry
+            </MudButton>
+        }
+        else
+        {
+            <MudPaper Elevation="0" Class="pa-3 rounded-lg" Style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                <MudStack Spacing="2">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6" Class="fw-bold">@expense.ExpenseName</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @EntityReferenceFormatter.Format(EntityReferenceType.Expense, expense.Id)
+                        </MudText>
+                    </MudStack>
+                    <MudDivider />
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Amount</MudText>
+                            <MudText Typo="Typo.body1" Class="fw-bold">@MoneyFormatter.Format(expense.ExpenseAmount) RWF</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Expense date</MudText>
+                            <MudText Typo="Typo.body1">@expense.ExpenseDate.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Expense type</MudText>
+                            <MudText Typo="Typo.body1">@expense.ExpenseTypeName</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Account</MudText>
+                            <MudText Typo="Typo.body1">@expense.AccountName</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Account reference</MudText>
+                            <MudText Typo="Typo.body1">@FormatAccountReference(expense.AccountId)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Date added</MudText>
+                            <MudText Typo="Typo.body1">@expense.DateAdded.ToString("dd MMM yyyy HH:mm", CultureInfo.CurrentCulture)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Added by (login email)</MudText>
+                            <MudText Typo="Typo.body1">
+                                @(string.IsNullOrWhiteSpace(expense.UserAdded) ? "Email not recorded" : expense.UserAdded)
+                            </MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@GetStatusColor(expense.Status)">
+                                @expense.Status
+                            </MudChip>
+                        </MudItem>
+                    </MudGrid>
+                </MudStack>
+            </MudPaper>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Variant="Variant.Text">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public int ExpenseId { get; set; }
+
+    private GetExpenseDTO? expense;
+    private bool isLoading;
+    private bool loadError;
+
+    protected override Task OnInitializedAsync() => LoadExpenseAsync();
+
+    private async Task LoadExpenseAsync()
+    {
+        isLoading = true;
+        loadError = false;
+
+        try
+        {
+            expense = await ExpenseService.GetExpenseByIdAsync(ExpenseId);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load expense {ExpenseId}.", ExpenseId);
+            loadError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string FormatAccountReference(int? accountId) =>
+        accountId.HasValue
+            ? EntityReferenceFormatter.Format(EntityReferenceType.Account, accountId.Value)
+            : "—";
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Inactive" => Color.Error,
+        _ => Color.Default
+    };
+
+    private void Close() => MudDialog.Cancel();
+}

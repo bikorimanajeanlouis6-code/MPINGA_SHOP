@@ -4,6 +4,8 @@
 @using Application.Services.StockServices
 @using Web.Formatting
 @rendermode InteractiveServer
+ @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]  
 @inject IStockService StockService
 @inject ILogger<Stock> Logger
 @inject ISnackbar Snackbar
@@ -105,9 +107,9 @@
                     <TemplateColumn Title="Stock Value">
                         <CellTemplate>@FormatMoney(context.Item.QuantityAvailable * context.Item.LastPrice)</CellTemplate>
                     </TemplateColumn>
-                    <TemplateColumn Title="Date Added">
+                    @* <TemplateColumn Title="Date Added">
                         <CellTemplate>@context.Item.DateAdded.ToString("dd MMM yyyy HH:mm", CultureInfo.CurrentCulture)</CellTemplate>
-                    </TemplateColumn>
+                    </TemplateColumn> *@
                     @* @* <PropertyColumn Property="stock => stock.Status" Title="Status" /> *@
                 </Columns> 
                 <NoRecordsContent>

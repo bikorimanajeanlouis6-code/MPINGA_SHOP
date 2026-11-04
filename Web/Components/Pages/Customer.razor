@@ -4,6 +4,8 @@
 @using Application.Services.SaleItemsServices
 @using Web.Formatting
 @rendermode InteractiveServer
+ @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]  
 @inject IDialogService DialogService
 @inject ICustomerService CustomerService
 @inject ISnackbar Snackbar

@@ -3,6 +3,8 @@
 @using Application.DTOs
 @using Application.Services.SaleItemsServices
 @rendermode InteractiveServer
+ @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]  
 @inject ISaleItemsService SaleItemsService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -73,12 +75,22 @@
                         <MudText Typo="Typo.body2" Class="fw-bold">@context.Item.TotalSaleItemPrice</MudText>
                     </CellTemplate>
                 </TemplateColumn>
-                <TemplateColumn Title="Date Added">
+                <TemplateColumn Title="Details" Sortable="false" Filterable="false">
+                    <CellTemplate>
+                        <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                       Color="Color.Primary"
+                                       Size="Size.Small"
+                                       aria-label="@($"View details for sale item {context.Item.Id}")"
+                                       Disabled="@isOpeningDetails"
+                                       OnClick="@(() => OpenSaleItemDetailsAsync(context.Item))" />
+                    </CellTemplate>
+                </TemplateColumn>
+                @* <TemplateColumn Title="Date Added">
                     <CellTemplate>
                         @context.Item.DateAdded.ToString("dd MMM yyyy HH:mm", CultureInfo.CurrentCulture)
                     </CellTemplate>
-                </TemplateColumn>
-                <PropertyColumn Property="item => item.UserAdded" Title="User Added" />
+                </TemplateColumn> *@
+                @* <PropertyColumn Property="item => item.UserAdded" Title="User Added" /> *@
             </Columns>
 
             <PagerContent>
@@ -92,6 +104,7 @@
     private string _searchString = string.Empty;
     private List<GetSaleItemsDTO> saleItems = new();
     private bool isOpeningDialog;
+    private bool isOpeningDetails;
 
     protected override async Task OnInitializedAsync()
     {
@@ -142,6 +155,40 @@
         finally
         {
             isOpeningDialog = false;
+        }
+    }
+
+    private async Task OpenSaleItemDetailsAsync(GetSaleItemsDTO saleItem)
+    {
+        if (isOpeningDetails)
+            return;
+
+        isOpeningDetails = true;
+        try
+        {
+            var parameters = new DialogParameters<SaleItemDetails>
+            {
+                { dialog => dialog.SaleItemId, saleItem.Id }
+            };
+            await DialogService.ShowAsync<SaleItemDetails>(
+                "Sale Item Details",
+                parameters,
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Small,
+                    FullWidth = true
+                });
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open details for sale item {SaleItemId}.", saleItem.Id);
+            Snackbar.Add("Could not open sale item details.", Severity.Error);
+        }
+        finally
+        {
+            isOpeningDetails = false;
         }
     }
 }

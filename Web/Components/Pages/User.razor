@@ -1,5 +1,7 @@
 @using Application.DTOs
 @using Application.Services.IdentityServices
+ @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]  
 @inject IDialogService DialogService
 @using Domain.ValueObjects
 @page "/Users"

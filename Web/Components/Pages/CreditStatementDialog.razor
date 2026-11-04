@@ -3,6 +3,8 @@
 @using Application.Services.PaymentServices
 @using Application.Services.SalesServices
 @using Web.Formatting
+ @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]  
 @inject ICustomerService CustomerService
 @inject ISalesService SalesService
 @inject IPaymentService PaymentService

@@ -3,6 +3,8 @@
 @using Web.Formatting
 @using Application.Services.ReplenishmentServices
 @rendermode InteractiveServer
+ @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]  
 @inject IReplenishmentService ReplenishmentService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar

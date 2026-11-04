@@ -147,6 +147,7 @@
         isSaving = true;
         product.DateAdded = DateTime.Now;
         product.Status = "Active";
+        product.UserAdded = UserContext.Email;
 
         try
         {

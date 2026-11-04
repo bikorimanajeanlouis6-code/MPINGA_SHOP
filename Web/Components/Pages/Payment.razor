@@ -3,6 +3,8 @@
 @using Application.Services.PaymentServices
 @using Web.Formatting
 @rendermode InteractiveServer
+ @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]  
 @inject IPaymentService PaymentService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -50,13 +52,23 @@
             </TemplateColumn>
             <PropertyColumn Property="payment => payment.PaymentMethodName" Title="Method" />
             <PropertyColumn Property="payment => payment.AccountName" Title="Account" />
-            <TemplateColumn Title="Payment Date">
+            <TemplateColumn Title="Details" Sortable="false" Filterable="false">
+                <CellTemplate>
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   aria-label="@($"View details for payment {context.Item.Id}")"
+                                   Disabled="@isOpeningDialog"
+                                   OnClick="@(() => OpenPaymentDetailsAsync(context.Item))" />
+                </CellTemplate>
+            </TemplateColumn>
+            @* <TemplateColumn Title="Payment Date">
                 <CellTemplate>
                     @context.Item.PaymentDate.ToString("dd MMM yyyy")
                 </CellTemplate>
-            </TemplateColumn>
+            </TemplateColumn> *@
           
-            <PropertyColumn Property="payment => payment.UserAdded" Title="Added By" />
+            @* <PropertyColumn Property="payment => payment.UserAdded" Title="Added By" /> *@
           
         </Columns>
 
@@ -128,6 +140,40 @@
         "Inactive" => Color.Error,
         _ => Color.Default
     };
+
+    private async Task OpenPaymentDetailsAsync(GetPaymentDTO payment)
+    {
+        if (isOpeningDialog)
+            return;
+
+        isOpeningDialog = true;
+        try
+        {
+            var dialog = await DialogService.ShowAsync<PaymentDetails>(
+                "Payment Details",
+                new DialogParameters<PaymentDetails>
+                {
+                    { component => component.PaymentId, payment.Id }
+                },
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Small,
+                    FullWidth = true
+                });
+            await dialog.Result;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open details for payment {PaymentId}.", payment.Id);
+            Snackbar.Add("Could not open payment details.", Severity.Error);
+        }
+        finally
+        {
+            isOpeningDialog = false;
+        }
+    }
 
     private async Task OpenAddPaymentAsync()
     {

@@ -3,6 +3,8 @@
 @using Application.Services.CustomerServices
 @using Web.Formatting
 @rendermode InteractiveServer
+ @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]  
 @inject ICustomerService CustomerService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar

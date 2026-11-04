@@ -6,6 +6,8 @@
 @using Application.Services.SalesServices
 @using Web.Formatting
 @rendermode InteractiveServer
+ @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]  
 @inject ISalesService SalesService
 @inject ISaleItemsService SaleItemsService
 @inject ICustomerService CustomerService

@@ -3,6 +3,8 @@
 @using Application.Services.SaleItemsServices
 @using Application.Services.SalesServices
 @rendermode InteractiveServer
+ @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]  
 @inject ISalesService SalesService
 @inject ISaleItemsService SaleItemsService
 @inject IDialogService DialogService
@@ -56,12 +58,12 @@
             <PropertyColumn Property="sale => sale.TotalConsumed" Title="Total Consumed" />
             <PropertyColumn Property="sale => sale.Balance" Title="Balance" />
             <PropertyColumn Property="sale => sale.TotalPaid" Title="Total Paid" />
-            <TemplateColumn Title="Sale Date">
+            @* <TemplateColumn Title="Sale Date">
                 <CellTemplate>
                     @context.Item.SaleDate.ToString("dd MMM yyyy")
                 </CellTemplate>
             </TemplateColumn>
-            <PropertyColumn Property="sale => sale.UserAdded" Title="User Added" />
+            <PropertyColumn Property="sale => sale.UserAdded" Title="User Added" /> *@
             <TemplateColumn Title="Details" Sortable="false" Filterable="false">
                 <CellTemplate>
                     <MudIconButton Icon="@Icons.Material.Filled.Visibility"

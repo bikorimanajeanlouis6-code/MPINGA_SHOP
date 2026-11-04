@@ -1,0 +1,163 @@
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.PaymentServices
+@using Web.Formatting
+ @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]  
+@inject IPaymentService PaymentService
+@inject ILogger<PaymentDetails> Logger
+
+<MudDialog Class="add-dialog">
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Color="Color.Primary" Size="Size.Medium" />
+            <MudText Typo="Typo.h6" Class="fw-bold">Payment Details</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (loadError || payment is null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-2">Could not load payment details.</MudAlert>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadPaymentAsync" Disabled="@isLoading">
+                Retry
+            </MudButton>
+        }
+        else
+        {
+            <MudPaper Elevation="0" Class="pa-3 rounded-lg" Style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                <MudStack Spacing="2">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6" Class="fw-bold">@payment.PaymentName</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @EntityReferenceFormatter.Format(EntityReferenceType.Payment, payment.Id)
+                        </MudText>
+                    </MudStack>
+                    <MudDivider />
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Amount</MudText>
+                            <MudText Typo="Typo.body1" Class="fw-bold">@MoneyFormatter.Format(payment.PaymentAmount) RWF</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Payment date</MudText>
+                            <MudText Typo="Typo.body1">@payment.PaymentDate.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Payment method</MudText>
+                            <MudText Typo="Typo.body1">@payment.PaymentMethodName</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Method reference</MudText>
+                            <MudText Typo="Typo.body1">@EntityReferenceFormatter.Format(EntityReferenceType.PaymentMethod, payment.PaymentMethodId)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Account</MudText>
+                            <MudText Typo="Typo.body1">@payment.AccountName</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Account reference</MudText>
+                            <MudText Typo="Typo.body1">@FormatAccountReference(payment.AccountId)</MudText>
+                        </MudItem>
+                        @if (!string.IsNullOrWhiteSpace(payment.CustomerName))
+                        {
+                            <MudItem xs="12" sm="6">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Customer</MudText>
+                                <MudText Typo="Typo.body1">@payment.CustomerName</MudText>
+                            </MudItem>
+                        }
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Linked record</MudText>
+                            <MudText Typo="Typo.body1">@GetLinkedRecord(payment)</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Description</MudText>
+                            <MudText Typo="Typo.body1">
+                                @(string.IsNullOrWhiteSpace(payment.PaymentDescription) ? "No description provided." : payment.PaymentDescription)
+                            </MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Date added</MudText>
+                            <MudText Typo="Typo.body1">@payment.DateAdded.ToString("dd MMM yyyy HH:mm", CultureInfo.CurrentCulture)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Added by</MudText>
+                            <MudText Typo="Typo.body1">
+                                @(string.IsNullOrWhiteSpace(payment.UserAdded) ? "Not recorded" : payment.UserAdded)
+                            </MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@GetStatusColor(payment.Status)">
+                                @payment.Status
+                            </MudChip>
+                        </MudItem>
+                    </MudGrid>
+                </MudStack>
+            </MudPaper>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Variant="Variant.Text">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public int PaymentId { get; set; }
+
+    private GetPaymentDTO? payment;
+    private bool isLoading;
+    private bool loadError;
+
+    protected override Task OnInitializedAsync() => LoadPaymentAsync();
+
+    private async Task LoadPaymentAsync()
+    {
+        isLoading = true;
+        loadError = false;
+
+        try
+        {
+            payment = await PaymentService.GetPaymentByIdAsync(PaymentId);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load payment {PaymentId}.", PaymentId);
+            loadError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string FormatAccountReference(int? accountId) =>
+        accountId.HasValue
+            ? EntityReferenceFormatter.Format(EntityReferenceType.Account, accountId.Value)
+            : "—";
+
+    private static string GetLinkedRecord(GetPaymentDTO payment)
+    {
+        if (payment.ReplenishmentId.HasValue)
+            return $"Replenishment {EntityReferenceFormatter.Format(EntityReferenceType.Replenishment, payment.ReplenishmentId.Value)}";
+        if (payment.SalesId.HasValue)
+            return $"Sale {EntityReferenceFormatter.Format(EntityReferenceType.Sale, payment.SalesId.Value)}";
+        return "—";
+    }
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Inactive" => Color.Error,
+        _ => Color.Default
+    };
+
+    private void Close() => MudDialog.Cancel();
+}

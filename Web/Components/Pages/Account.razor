@@ -3,6 +3,8 @@
 @using Application.Services.AccountServices
 @using Web.Formatting
 @rendermode InteractiveServer
+ @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]  
 @inject IAccountService AccountService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
