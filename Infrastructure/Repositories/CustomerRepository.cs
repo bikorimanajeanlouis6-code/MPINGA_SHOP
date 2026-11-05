@@ -40,12 +40,22 @@ namespace Infrastructure.Repositories
         public async Task AddCustomerAsync(AddCustomerDTO customer)
         {
             ArgumentNullException.ThrowIfNull(customer);
+            var phoneNumber = customer.PhoneNumber?.Trim() ?? string.Empty;
+            if (phoneNumber.Length != 10 || phoneNumber.Any(character => character is < '0' or > '9'))
+                throw new ArgumentException("Phone number must contain exactly 10 digits.", nameof(customer));
+
+            if (await _dbcontext.Customers
+                .AnyAsync(existingCustomer => existingCustomer.PhoneNumber.Trim() == phoneNumber))
+            {
+                throw new InvalidOperationException("A customer with this phone number is already registered.");
+            }
+
             await _dbcontext.Customers.AddAsync(new Customer
             {
                 Name = customer.CustomerName,
                 Sex = customer.Sex,
                 Email = customer.Email,
-                PhoneNumber = customer.PhoneNumber,
+                PhoneNumber = phoneNumber,
                 Status = customer.Status,
                 UserAdded = customer.UserAdded,
                 DateAdded = customer.DateAdded

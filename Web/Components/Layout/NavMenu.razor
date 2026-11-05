@@ -10,14 +10,25 @@
      <MudNavLink Href="/Payment" Icon="@Icons.Material.Filled.Payment">Payments</MudNavLink>
     <MudNavLink Href="/products" Icon="@Icons.Material.Filled.ShoppingCart">Products</MudNavLink>
     <MudNavLink Href="/Replenishment" Icon="@Icons.Material.Filled.Inventory2">Replenishments</MudNavLink>
-    <MudNavLink Href="/Expenses" Icon="@Icons.Material.Filled.Receipt">Expenses</MudNavLink>
+    @if (UserContext.IsAdmin)
+    {
+        <MudNavLink Href="/Expenses" Icon="@Icons.Material.Filled.Receipt">Expenses</MudNavLink>
+    }
     <MudNavLink Href="/Stock" Icon="@Icons.Material.Filled.Warehouse">Stock</MudNavLink>
-    <MudNavLink Href="/IncomeStatement" Icon="@Icons.Material.Filled.Assessment">Income Statement</MudNavLink>
-    <MudNavLink Href="/Account" Icon="@Icons.Material.Filled.AccountBalance">Accounts</MudNavLink>
-    <MudNavGroup Title="Settings" Icon="@Icons.Material.Filled.Settings">
-       <MudNavLink Href="/EXPENSECATEGORIES" Icon="@Icons.Material.Filled.List">Expense Types</MudNavLink>
-       <MudNavLink Href="/categories" Icon="@Icons.Material.Filled.Category">Product Categories</MudNavLink>
-       <MudNavLink Href="/PaymentMethod" Icon="@Icons.Material.Filled.Payment">Payment Methods</MudNavLink>
-    </MudNavGroup>
-    <MudNavLink Href="/users" Icon="@Icons.Material.Filled.Person">Users</MudNavLink>
+    @if (UserContext.IsAdmin)
+    {
+        <MudNavLink Href="/IncomeStatement" Icon="@Icons.Material.Filled.Assessment">Income Statement</MudNavLink>
+        <MudNavLink Href="/Account" Icon="@Icons.Material.Filled.AccountBalance">Accounts</MudNavLink>
+        <MudNavGroup Title="Settings" Icon="@Icons.Material.Filled.Settings">
+           <MudNavLink Href="/EXPENSECATEGORIES" Icon="@Icons.Material.Filled.List">Expense Types</MudNavLink>
+           <MudNavLink Href="/categories" Icon="@Icons.Material.Filled.Category">Product Categories</MudNavLink>
+           <MudNavLink Href="/PaymentMethod" Icon="@Icons.Material.Filled.Payment">Payment Methods</MudNavLink>
+        </MudNavGroup>
+        <MudNavLink Href="/users" Icon="@Icons.Material.Filled.Person">Users</MudNavLink>
+    }
+
+    <div class="nav-footer">
+    <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" Size="Size.Small" />
+    <MudText Typo="Typo.caption">Workspace connected</MudText>
+    </div>
 </MudNavMenu>

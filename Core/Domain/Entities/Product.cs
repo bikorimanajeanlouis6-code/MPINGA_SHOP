@@ -7,6 +7,7 @@ public class Product
     public string ProductDescription { get; set; } = string.Empty;
     public string ProductPrice { get; set; }
     public string ProductQuantity { get; set; }
+    public string Unit { get; set; } = "pcs";
     public int ProductCategoryId { get; set; }
     public ProductCategory ProductCategory { get; set; }
     public DateTime DateAdded { get; set; }

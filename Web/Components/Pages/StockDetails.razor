@@ -1,0 +1,300 @@
+@using System.Globalization
+@using Application.DTOs
+@using Application.Services.ReplenishmentServices
+@using Application.Services.SaleItemsServices
+@using Web.Formatting
+@using Web.Reports
+@inject IReplenishmentService ReplenishmentService
+@inject ISaleItemsService SaleItemsService
+@inject ILogger<StockDetails> Logger
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudDialog Class="stock-details-dialog">
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" Size="Size.Medium" />
+            <MudText Typo="Typo.h6" Class="fw-bold">Stock Details</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        @if (Stock is null)
+        {
+            <MudAlert Severity="Severity.Error">Stock details are unavailable.</MudAlert>
+        }
+        else
+        {
+            <MudStack Spacing="3">
+                <MudPaper Elevation="0" Class="pa-4 rounded-lg stock-details-header">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h5" Class="fw-bold">@Stock.StockName</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @EntityReferenceFormatter.Format(EntityReferenceType.Stock, Stock.Id)
+                                @if (!string.IsNullOrWhiteSpace(Stock.ProductCategoryName))
+                                {
+                                    <span> · @Stock.ProductCategoryName</span>
+                                }
+                            </MudText>
+                        </MudStack>
+                        <MudChip T="string"
+                                 Color="@(Stock.QuantityAvailable > 0 ? Color.Success : Color.Warning)"
+                                 Variant="Variant.Filled"
+                                 Icon="@Icons.Material.Filled.Inventory">
+                            @FormatQuantity(Stock.QuantityAvailable) available
+                        </MudChip>
+                    </MudStack>
+                </MudPaper>
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Class="pa-3 stock-metric" Elevation="0">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Received</MudText>
+                            <MudText Typo="Typo.h6" Class="fw-bold">@FormatQuantity(Stock.QuantityInStock)</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Class="pa-3 stock-metric" Elevation="0">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Sold</MudText>
+                            <MudText Typo="Typo.h6" Class="fw-bold">@FormatQuantity(Stock.QuantitySold)</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Class="pa-3 stock-metric" Elevation="0">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Available stock value</MudText>
+                            <MudText Typo="Typo.h6" Class="fw-bold">@FormatMoney(Stock.QuantityAvailable * Stock.LastPrice)</MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.Timeline" Color="Color.Primary" />
+                    <MudText Typo="Typo.h6" Class="fw-bold">Stock Movement History</MudText>
+                    <MudSpacer />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@Movements.Count records</MudText>
+                </MudStack>
+
+                @if (isLoading)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                }
+                else if (loadError)
+                {
+                    <MudAlert Severity="Severity.Error">
+                        Stock movement history could not be loaded.
+                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="LoadHistoryAsync" Disabled="@isLoading">
+                            Retry
+                        </MudButton>
+                    </MudAlert>
+                }
+                else if (Movements.Count == 0)
+                {
+                    <MudPaper Class="pa-4" Elevation="0">
+                        <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Large" Color="Color.Default" />
+                            <MudText Typo="Typo.subtitle1">No movement history yet</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                Replenishments and sales for this product will appear here.
+                            </MudText>
+                        </MudStack>
+                    </MudPaper>
+                }
+                else
+                {
+                    <MudTable T="StockMovementReportItem" Items="@Movements" Dense="true" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Date</MudTh>
+                            <MudTh>Movement</MudTh>
+                            <MudTh>Reference</MudTh>
+                            <MudTh>Supplier / Customer</MudTh>
+                            <MudTh>Recorded by</MudTh>
+                            <MudTh Class="text-end">Quantity</MudTh>
+                            <MudTh Class="text-end">Unit price</MudTh>
+                        </HeaderContent>
+                        <RowTemplate Context="movement">
+                            <MudTd DataLabel="Date">@movement.Date.ToString("dd MMM yyyy HH:mm", CultureInfo.CurrentCulture)</MudTd>
+                            <MudTd DataLabel="Movement">
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Variant="Variant.Outlined"
+                                         Color="@(movement.IsStockIn ? Color.Success : Color.Warning)"
+                                         Icon="@(movement.IsStockIn ? Icons.Material.Filled.ArrowDownward : Icons.Material.Filled.ArrowUpward)">
+                                    @(movement.IsStockIn ? "Stock in" : "Sale")
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Reference">@movement.Reference</MudTd>
+                            <MudTd DataLabel="Supplier / Customer">@movement.Party</MudTd>
+                            <MudTd DataLabel="Recorded by">@movement.UserAdded</MudTd>
+                            <MudTd DataLabel="Quantity" Class="text-end fw-bold">
+                                @(movement.IsStockIn ? "+" : "-")@FormatQuantity(movement.Quantity)
+                            </MudTd>
+                            <MudTd DataLabel="Unit price" Class="text-end">@FormatMoney(movement.UnitPrice)</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Print"
+                   data-pdf-print="true"
+                   OnClick="PrintReportAsync"
+                   Disabled="@(!CanExport)">
+            Print
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Download"
+                   OnClick="DownloadReportAsync"
+                   Disabled="@(!CanExport)">
+            Download PDF
+        </MudButton>
+        <MudButton OnClick="Close" Variant="Variant.Text">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .stock-details-header {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .stock-metric {
+        height: 100%;
+        border: 1px solid var(--mud-palette-lines-default);
+    }
+</style>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public GetStockDTO Stock { get; set; } = default!;
+
+    private List<GetReplenishmentDTO> replenishments = new();
+    private List<GetSaleItemsDTO> sales = new();
+    private bool isLoading;
+    private bool loadError;
+
+    private bool CanExport => Stock is not null && !isLoading && !loadError;
+
+    private List<StockMovementReportItem> Movements =>
+        replenishments
+            .Select(item => new StockMovementReportItem(
+                item.ReplenishmentDate,
+                true,
+                EntityReferenceFormatter.Format(EntityReferenceType.Replenishment, item.Id),
+                item.SupplierName,
+                item.UserAdded,
+                item.QuantityReplenished,
+                ParseAmount(item.PurchasePrice)))
+            .Concat(sales.Select(item => new StockMovementReportItem(
+                item.DateAdded,
+                false,
+                EntityReferenceFormatter.Format(EntityReferenceType.Sale, item.SalesId),
+                item.CustomerName,
+                item.UserAdded,
+                ParseQuantity(item.SaleItemQuantity),
+                ParseAmount(item.SaleItemPrice))))
+            .OrderByDescending(item => item.Date)
+            .ToList();
+
+    protected override void OnInitialized() => isLoading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        await LoadHistoryAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadHistoryAsync()
+    {
+        isLoading = true;
+        loadError = false;
+
+        try
+        {
+            var allReplenishments = await ReplenishmentService.GetAllReplenishmentsAsync();
+            var allSales = await SaleItemsService.GetAllSaleItemsAsync();
+            replenishments = allReplenishments
+                .Where(item => item.ProductId == Stock.ProductId)
+                .ToList();
+            sales = allSales
+                .Where(item => item.ProductId == Stock.ProductId)
+                .ToList();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load stock history for product {ProductId}.", Stock.ProductId);
+            loadError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string FormatQuantity(int quantity) =>
+        $"{quantity.ToString("N0", CultureInfo.CurrentCulture)} {QuantityUnitFormatter.Format(Stock.Unit)}";
+
+    private static string FormatMoney(decimal amount) => $"{MoneyFormatter.Format(amount)} RWF";
+
+    private static int ParseQuantity(string? quantity) =>
+        int.TryParse(quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : int.TryParse(quantity, NumberStyles.Integer, CultureInfo.CurrentCulture, out value)
+                ? value
+                : 0;
+
+    private static decimal ParseAmount(string? amount) =>
+        decimal.TryParse(amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : decimal.TryParse(amount, NumberStyles.Number, CultureInfo.CurrentCulture, out value)
+                ? value
+                : 0m;
+
+    private async Task PrintReportAsync()
+    {
+        if (!CanExport)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "customerReportDownloads.printPdf",
+                Convert.ToBase64String(StockDetailsPdfBuilder.CreatePdf(Stock, Movements)));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not print stock details for stock {StockId}.", Stock.Id);
+            Snackbar.Add("Could not open the stock details print dialog.", Severity.Error);
+        }
+    }
+
+    private async Task DownloadReportAsync()
+    {
+        if (!CanExport)
+            return;
+
+        try
+        {
+            var fileName = $"stock-details-{Stock.Id}-{DateTime.Now:yyyyMMdd}.pdf";
+            await JS.InvokeVoidAsync(
+                "customerReportDownloads.downloadPdf",
+                Convert.ToBase64String(StockDetailsPdfBuilder.CreatePdf(Stock, Movements)),
+                fileName);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Could not download stock details for stock {StockId}.", Stock.Id);
+            Snackbar.Add("Could not download the stock details PDF.", Severity.Error);
+        }
+    }
+
+    private void Close() => MudDialog.Cancel();
+}

@@ -76,6 +76,10 @@ namespace Infrastructure.Repositories
                 .FirstOrDefaultAsync(existingProduct => existingProduct.Id == replenishment.ProductId)
                 ?? throw new KeyNotFoundException($"Product with ID {replenishment.ProductId} was not found.");
 
+            var productUnit = NormalizeUnit(product.Unit);
+            if (!string.Equals(productUnit, unit, StringComparison.Ordinal))
+                throw new InvalidOperationException($"Replenishment unit must match the product unit ({productUnit}).");
+
             var existingUnit = product.Stocks?
                 .Select(stock => NormalizeUnit(stock.Unit))
                 .FirstOrDefault();
@@ -112,28 +116,52 @@ namespace Infrastructure.Repositories
                 Status = replenishment.Status
             };
             await _dbcontext.Replenishments.AddAsync(replenishmentEntity);
-            await _dbcontext.Stocks.AddAsync(new Stock
+            var modifiedAt = DateTime.Now;
+            var stock = product.Stocks?
+                .OrderByDescending(existingStock => string.Equals(existingStock.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(existingStock => existingStock.DateAdded)
+                .ThenByDescending(existingStock => existingStock.Id)
+                .FirstOrDefault();
+            var hasSellingPrice = decimal.TryParse(
+                replenishment.SellingPrice,
+                System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var sellingPrice);
+
+            if (stock is null)
             {
-                StockName = product.ProductName,
-                QuantityInStock = RepositoryValueConversions.ToStorageString(replenishment.QuantityReplenished),
-                QuantitySold = "0",
-                QuantityAvailable = RepositoryValueConversions.ToStorageString(replenishment.QuantityReplenished),
-                Unit = unit,
-                SellingPrice = RepositoryValueConversions.ToStorageString(
-                    decimal.TryParse(
-                        replenishment.SellingPrice,
-                        System.Globalization.NumberStyles.Number,
-                        System.Globalization.CultureInfo.InvariantCulture,
-                        out var sellingPrice)
-                        ? sellingPrice
-                        : 0m),
-                LastPrice = RepositoryValueConversions.ToStorageString(purchasePrice),
-                LastlyModified = RepositoryValueConversions.ToStorageString(DateTime.Now),
-                ProductId = product.Id,
-                DateAdded = DateTime.Now,
-                UserAdded = replenishment.UserAdded,
-                Status = "Active"
-            });
+                await _dbcontext.Stocks.AddAsync(new Stock
+                {
+                    StockName = product.ProductName,
+                    QuantityInStock = RepositoryValueConversions.ToStorageString(replenishment.QuantityReplenished),
+                    QuantitySold = "0",
+                    QuantityAvailable = RepositoryValueConversions.ToStorageString(replenishment.QuantityReplenished),
+                    Unit = unit,
+                    SellingPrice = RepositoryValueConversions.ToStorageString(hasSellingPrice ? sellingPrice : 0m),
+                    LastPrice = RepositoryValueConversions.ToStorageString(purchasePrice),
+                    LastlyModified = RepositoryValueConversions.ToStorageString(modifiedAt),
+                    ProductId = product.Id,
+                    DateAdded = modifiedAt,
+                    UserAdded = replenishment.UserAdded,
+                    Status = "Active"
+                });
+            }
+            else
+            {
+                var quantityInStock = RepositoryValueConversions.ToInt32(stock.QuantityInStock);
+                var quantityAvailable = RepositoryValueConversions.ToInt32(stock.QuantityAvailable);
+                stock.StockName = product.ProductName;
+                stock.QuantityInStock = RepositoryValueConversions.ToStorageString(
+                    checked(quantityInStock + replenishment.QuantityReplenished));
+                stock.QuantityAvailable = RepositoryValueConversions.ToStorageString(
+                    checked(quantityAvailable + replenishment.QuantityReplenished));
+                stock.Unit = unit;
+                if (hasSellingPrice)
+                    stock.SellingPrice = RepositoryValueConversions.ToStorageString(sellingPrice);
+                stock.LastPrice = RepositoryValueConversions.ToStorageString(purchasePrice);
+                stock.LastlyModified = RepositoryValueConversions.ToStorageString(modifiedAt);
+                stock.Status = "Active";
+            }
             await _dbcontext.SaveChangesAsync();
 
             if (replenishment.PaidAmount > 0)
@@ -186,6 +214,7 @@ namespace Infrastructure.Repositories
             return new GetReplenishmentDTO
             {
                 Id = entity.Id,
+                ProductId = entity.ProductId,
                 ReplenishmentName = entity.ReplenishmentName,
                 ReplenishmentAmount = totalString,
                 ReplenishmentDate = RepositoryValueConversions.ToDateTime(entity.ReplenishmentDate),

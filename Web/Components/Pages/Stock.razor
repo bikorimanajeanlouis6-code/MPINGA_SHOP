@@ -7,6 +7,7 @@
  @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]  
 @inject IStockService StockService
+@inject IDialogService DialogService
 @inject ILogger<Stock> Logger
 @inject ISnackbar Snackbar
 
@@ -23,11 +24,6 @@
                           Variant="Variant.Outlined"
                           Margin="Margin.Dense"
                           Class="me-2" />
-            <MudButton Variant="Variant.Outlined"
-                       StartIcon="@Icons.Material.Filled.Assessment"
-                       Href="/StockReport">
-                Stock Report
-            </MudButton>
             <MudButton Variant="Variant.Text"
                        StartIcon="@Icons.Material.Filled.Refresh"
                        OnClick="LoadStockAsync"
@@ -107,10 +103,18 @@
                     <TemplateColumn Title="Stock Value">
                         <CellTemplate>@FormatMoney(context.Item.QuantityAvailable * context.Item.LastPrice)</CellTemplate>
                     </TemplateColumn>
-                    @* <TemplateColumn Title="Date Added">
-                        <CellTemplate>@context.Item.DateAdded.ToString("dd MMM yyyy HH:mm", CultureInfo.CurrentCulture)</CellTemplate>
-                    </TemplateColumn> *@
-                    @* @* <PropertyColumn Property="stock => stock.Status" Title="Status" /> *@
+                    <TemplateColumn Title="Details">
+                        <CellTemplate>
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Visibility"
+                                       Disabled="@isOpeningDetails"
+                                       OnClick="@(() => OpenDetailsAsync(context.Item))">
+                                View details
+                            </MudButton>
+                        </CellTemplate>
+                    </TemplateColumn>
                 </Columns> 
                 <NoRecordsContent>
                     <MudText Class="pa-4" Color="Color.Secondary">
@@ -121,6 +125,7 @@
                     <MudDataGridPager T="GetStockDTO" />
                 </PagerContent>
             </MudDataGrid>
+
         }
     </MudStack>
 </MudContainer>
@@ -137,12 +142,14 @@
     private List<GetStockDTO> stockItems = new();
     private bool isLoading;
     private bool loadError;
+    private bool isOpeningDetails;
 
     private List<GetStockDTO> FilteredStock =>
         stockItems
             .Where(MatchesSearch)
-            .OrderBy(stock => stock.StockName, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(stock => stock.Id)
+            .OrderByDescending(stock => stock.LastlyModified)
+            .ThenBy(stock => stock.StockName, StringComparer.OrdinalIgnoreCase)
+            .ThenByDescending(stock => stock.Id)
             .ToList();
 
     protected override Task OnInitializedAsync() => LoadStockAsync();
@@ -193,4 +200,38 @@
             .Select(group => $"{group.Sum(selector).ToString("N0", CultureInfo.CurrentCulture)} {group.Key}"));
 
     private static string FormatMoney(decimal amount) => $"{MoneyFormatter.Format(amount)} RWF";
+
+    private async Task OpenDetailsAsync(GetStockDTO stock)
+    {
+        if (isOpeningDetails)
+            return;
+
+        isOpeningDetails = true;
+        try
+        {
+            var dialog = await DialogService.ShowAsync<StockDetails>(
+                "Stock Details",
+                new DialogParameters<StockDetails>
+                {
+                    { component => component.Stock, stock }
+                },
+                new DialogOptions
+                {
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Large,
+                    FullWidth = true
+                });
+            await dialog.Result;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to open details for stock {StockId}.", stock.Id);
+            Snackbar.Add("Could not open stock details.", Severity.Error);
+        }
+        finally
+        {
+            isOpeningDetails = false;
+        }
+    }
 }

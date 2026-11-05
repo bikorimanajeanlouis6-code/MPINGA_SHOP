@@ -47,12 +47,30 @@
                                          Min="0"
                                          Format="0.##" />
                     </MudItem>
-                    <MudItem xs="12" sm="6">
+                    <MudItem xs="8" sm="6">
                         <MudTextField @bind-Value="product.ProductQuantity"
                                       Label="Quantity"
                                       Variant="Variant.Outlined"
                                       Margin="Margin.Dense"
                                       InputType="InputType.Number" />
+                    </MudItem>
+                    <MudItem xs="4" sm="6">
+                        <MudSelect T="string"
+                                   @bind-Value="product.Unit"
+                                   Label="Unit"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Required="true"
+                                   Disabled="@hasStock">
+                            <MudSelectItem T="string" Value="@KilogramUnit">kg</MudSelectItem>
+                            <MudSelectItem T="string" Value="@PieceUnit">pcs</MudSelectItem>
+                        </MudSelect>
+                        @if (hasStock)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Warning">
+                                The unit cannot be changed because stock has been recorded.
+                            </MudText>
+                        }
                     </MudItem>
                     <MudItem xs="12">
                         <MudSelect T="int"
@@ -98,6 +116,8 @@
 @code {
     private const string ActiveStatus = "Active";
     private const string InactiveStatus = "Inactive";
+    private const string KilogramUnit = "kg";
+    private const string PieceUnit = "pcs";
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
@@ -111,6 +131,7 @@
     private bool isLoading;
     private bool isSaving;
     private bool loadError;
+    private bool hasStock;
 
     protected override async Task OnInitializedAsync()
     {
@@ -121,11 +142,13 @@
             ProductDescription = Product.ProductDescription,
             ProductPrice = Product.ProductPrice,
             ProductQuantity = Product.ProductQuantity,
+            Unit = Product.Unit,
             ProductCategoryId = Product.ProductCategoryId,
             Status = Product.Status,
             UserAdded = Product.UserAdded,
             DateAdded = Product.DateAdded
         };
+        hasStock = Product.HasStock;
         _price = decimal.TryParse(Product.ProductPrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
             ? value
             : 0m;
@@ -168,7 +191,9 @@
         catch (Exception exception)
         {
             Logger.LogError(exception, "Failed to update product {ProductId}.", product.Id);
-            Snackbar.Add("Could not update the product.", Severity.Error);
+            Snackbar.Add(exception is ArgumentException or InvalidOperationException
+                ? exception.Message
+                : "Could not update the product.", Severity.Error);
         }
         finally
         {

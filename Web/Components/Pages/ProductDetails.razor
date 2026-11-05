@@ -48,7 +48,7 @@
                         </MudItem>
                         <MudItem xs="12" sm="6">
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Quantity</MudText>
-                            <MudText Typo="Typo.body1">@FormatQuantity(product.ProductQuantity)</MudText>
+                            <MudText Typo="Typo.body1">@FormatQuantity(product.ProductQuantity, product.Unit)</MudText>
                         </MudItem>
                         <MudItem xs="12" sm="6">
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Category</MudText>
@@ -124,10 +124,14 @@
         _ => Color.Default
     };
 
-    private static string FormatQuantity(string quantity) =>
-        int.TryParse(quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedQuantity)
-            ? parsedQuantity.ToString("N0", CultureInfo.CurrentCulture)
+    private static string FormatQuantity(string quantity, string unit)
+    {
+        var formattedQuantity = decimal.TryParse(quantity, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedQuantity)
+            ? parsedQuantity.ToString("#,##0.##", CultureInfo.CurrentCulture)
             : quantity;
+
+        return $"{formattedQuantity} {QuantityUnitFormatter.Format(unit)}";
+    }
 
     private void Close() => MudDialog.Cancel();
 }

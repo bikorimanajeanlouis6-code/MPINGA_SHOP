@@ -26,6 +26,7 @@ public class AddReplenishmentDTO
 public class GetReplenishmentDTO
 {
     public int Id { get; set; }
+    public int ProductId { get; set; }
     public string ReplenishmentName { get; set; } = string.Empty;
     public string ReplenishmentAmount { get; set; } = string.Empty;
     public DateTime ReplenishmentDate { get; set; }

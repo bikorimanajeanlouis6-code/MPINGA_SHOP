@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @inject ICustomerService CustomerService
 @inject ISnackbar Snackbar
+@inject ILogger<AddCustomer> Logger
 
 <MudDialog>
     <TitleContent>Add Customer</TitleContent>
@@ -37,22 +38,30 @@
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="customer.PhoneNumber"
+                                  For="@(() => customer.PhoneNumber)"
                                   Label="Phone Number"
                                   Variant="Variant.Outlined"
-                                  Margin="Margin.Dense" />
+                                  Margin="Margin.Dense"
+                                  InputType="InputType.Telephone"
+                                  MaxLength="10"
+                                  Required="true"
+                                  RequiredError="Phone number is required." />
+                    <ValidationMessage For="@(() => customer.PhoneNumber)" />
                 </MudItem>
             </MudGrid>
 
             <div class="d-flex justify-end mt-4">
                 <MudButton Color="Color.Primary"
                            ButtonType="ButtonType.Submit"
-                           Variant="Variant.Filled">SAVE</MudButton>
+                           Variant="Variant.Filled"
+                           Disabled="@isSaving">SAVE</MudButton>
             </div>
         </EditForm>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel"
-                   Variant="Variant.Text">
+                   Variant="Variant.Text"
+                   Disabled="@isSaving">
             Cancel
         </MudButton>
     </DialogActions>
@@ -61,6 +70,7 @@
 @code {
     private const string Male = "Male";
     private const string Female = "Female";
+    private bool isSaving;
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
@@ -71,11 +81,35 @@
 
     private async Task SaveCustomerAsync()
     {
+        if (isSaving)
+            return;
+
+        isSaving = true;
         customer.DateAdded = DateTime.Now;
         customer.Status = "Active";
 
-        await CustomerService.AddCustomerAsync(customer);
-        Snackbar.Add("Customer added successfully!", Severity.Success);
-        MudDialog.Close(DialogResult.Ok(true));
+        try
+        {
+            await CustomerService.AddCustomerAsync(customer);
+            Snackbar.Add("Customer added successfully!", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (ArgumentException exception)
+        {
+            Snackbar.Add(exception.Message, Severity.Error);
+        }
+        catch (InvalidOperationException exception)
+        {
+            Snackbar.Add(exception.Message, Severity.Error);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to add customer.");
+            Snackbar.Add("Could not add the customer. Please try again.", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
     }
 }

@@ -55,16 +55,13 @@
                                      Class="dialog-input" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="string"
-                               @bind-Value="replenishment.Unit"
-                               Label="Unit"
-                               Variant="Variant.Outlined"
-                               Margin="Margin.Dense"
-                               Required="true"
-                               Class="dialog-input">
-                        <MudSelectItem T="string" Value="@KilogramUnit">Kilograms (kg)</MudSelectItem>
-                        <MudSelectItem T="string" Value="@PieceUnit">Pieces (pcs)</MudSelectItem>
-                    </MudSelect>
+                    <MudTextField Value="@SelectedProductUnit"
+                                  Label="Unit"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  ReadOnly="true"
+                                  HelperText="Unit is set by the selected product."
+                                  Class="dialog-input" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="replenishment.SellingPrice"
@@ -196,6 +193,7 @@
                     {
                         <MudSelect T="int"
                                    @bind-Value="replenishment.ProductId"
+                                   @bind-Value:after="OnProductChanged"
                                    For="@(() => replenishment.ProductId)"
                                    Label="Product"
                                    Variant="Variant.Outlined"
@@ -206,7 +204,7 @@
                             @foreach (var product in products)
                             {
                                 <MudSelectItem T="int" Value="@product.Id">
-                                    @product.ProductName
+                                    @($"{product.ProductName} ({QuantityUnitFormatter.Format(product.Unit)})")
                                 </MudSelectItem>
                             }
                         </MudSelect>
@@ -244,8 +242,6 @@
 </MudDialog>
 
 @code {
-    private const string KilogramUnit = "kg";
-    private const string PieceUnit = "pcs";
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
@@ -261,6 +257,14 @@
     private bool isSaving;
     private bool loadError;
     private bool paymentOptionsError;
+    private string SelectedProductUnit
+    {
+        get
+        {
+            var selectedProduct = products.FirstOrDefault(product => product.Id == replenishment.ProductId);
+            return selectedProduct is null ? string.Empty : QuantityUnitFormatter.Format(selectedProduct.Unit);
+        }
+    }
 
     private bool CanSave =>
         !isLoading
@@ -268,7 +272,7 @@
         && !isSaving
         && products.Count > 0
         && replenishment.ProductId > 0
-        && replenishment.Unit is KilogramUnit or PieceUnit
+        && replenishment.Unit is "kg" or "pcs"
         && replenishment.QuantityReplenished > 0
         && decimal.TryParse(replenishment.PurchasePrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var purchasePrice)
         && purchasePrice > 0
@@ -289,8 +293,8 @@
                 return "Add or load a product before saving.";
             if (replenishment.ProductId <= 0)
                 return "Select a product.";
-            if (replenishment.Unit is not (KilogramUnit or PieceUnit))
-                return "Select a unit.";
+            if (replenishment.Unit is not ("kg" or "pcs"))
+                return "Select a product with a supported unit.";
             if (replenishment.QuantityReplenished <= 0)
                 return "Enter a quantity greater than zero.";
             if (!decimal.TryParse(replenishment.PurchasePrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var purchasePrice)
@@ -361,6 +365,13 @@
     }
 
     private void Cancel() => MudDialog.Cancel();
+
+    private void OnProductChanged()
+    {
+        replenishment.Unit = products
+            .FirstOrDefault(product => product.Id == replenishment.ProductId)?
+            .Unit.Trim().ToLowerInvariant() ?? string.Empty;
+    }
 
     private async Task SaveReplenishmentAsync()
     {

@@ -70,12 +70,12 @@ namespace Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("AccountId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("Amount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("AccountId")
-                        .HasColumnType("int");
 
                     b.Property<DateTime>("DateAdded")
                         .HasColumnType("datetime2");
@@ -347,6 +347,10 @@ namespace Infrastructure.Data.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Unit")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -833,6 +837,17 @@ namespace Infrastructure.Data.Migrations
                     b.ToTable("UserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.AccountDeposit", b =>
+                {
+                    b.HasOne("Domain.Entities.Account", "Account")
+                        .WithMany("Deposits")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+                });
+
             modelBuilder.Entity("Domain.Entities.Expenses", b =>
                 {
                     b.HasOne("Domain.Entities.Account", "Account")
@@ -848,17 +863,6 @@ namespace Infrastructure.Data.Migrations
                     b.Navigation("Account");
 
                     b.Navigation("ExpenseType");
-                });
-
-            modelBuilder.Entity("Domain.Entities.AccountDeposit", b =>
-                {
-                    b.HasOne("Domain.Entities.Account", "Account")
-                        .WithMany("Deposits")
-                        .HasForeignKey("AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Account");
                 });
 
             modelBuilder.Entity("Domain.Entities.Payment", b =>
@@ -1007,6 +1011,7 @@ namespace Infrastructure.Data.Migrations
             modelBuilder.Entity("Domain.Entities.Account", b =>
                 {
                     b.Navigation("Deposits");
+
                     b.Navigation("Payments");
                 });
 

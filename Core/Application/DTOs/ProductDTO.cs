@@ -9,6 +9,7 @@ public class AddProductDTO
     public string ProductDescription { get; set; } = string.Empty;
     public string ProductPrice { get; set; } = string.Empty;
     public string ProductQuantity { get; set; } = string.Empty;
+    public string Unit { get; set; } = "pcs";
     public int ProductCategoryId { get; set; }
     public string Status { get; set; } = string.Empty;
     public string UserAdded { get; set; } = string.Empty;
@@ -22,6 +23,8 @@ public class GetProductDTO
     public string ProductDescription { get; set; } = string.Empty;
     public string ProductPrice { get; set; } = string.Empty;
     public string ProductQuantity { get; set; } = string.Empty;
+    public string Unit { get; set; } = "pcs";
+    public bool HasStock { get; set; }
     public int ProductCategoryId { get; set; }
     public string ProductCategoryName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;

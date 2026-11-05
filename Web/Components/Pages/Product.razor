@@ -55,7 +55,9 @@
                     @($"{MoneyFormatter.Format(price)} RWF")
                 </CellTemplate>
             </TemplateColumn>
-            <PropertyColumn Property="product => product.ProductQuantity" Title="Quantity" />
+            <TemplateColumn Title="Quantity">
+                <CellTemplate>@($"{context.Item.ProductQuantity} {QuantityUnitFormatter.Format(context.Item.Unit)}")</CellTemplate>
+            </TemplateColumn>
             <PropertyColumn Property="product => product.ProductCategoryName" Title="Category" />
             @* <TemplateColumn Title="Date Added">
                 <CellTemplate>

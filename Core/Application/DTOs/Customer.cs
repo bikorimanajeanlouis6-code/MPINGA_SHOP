@@ -9,6 +9,8 @@ public class AddCustomerDTO
     [Required(ErrorMessage = "Select the customer's sex.")]
     public string Sex { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    [Required(ErrorMessage = "Phone number is required.")]
+    [RegularExpression(@"^[0-9]{10}$", ErrorMessage = "Phone number must contain exactly 10 digits.")]
     public string PhoneNumber { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string UserAdded { get; set; } = string.Empty;
