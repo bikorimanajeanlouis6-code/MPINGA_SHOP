@@ -11,7 +11,8 @@ public static class StockDetailsPdfBuilder
 {
     public static byte[] CreatePdf(
         GetStockDTO stock,
-        IReadOnlyList<StockMovementReportItem> movements)
+        IReadOnlyList<StockMovementReportItem> movements,
+        string periodDescription)
     {
         QuestPDF.Settings.License = LicenseType.Community;
         var stockReference = EntityReferenceFormatter.Format(EntityReferenceType.Stock, stock.Id);
@@ -36,7 +37,8 @@ public static class StockDetailsPdfBuilder
                         header.Item().PaddingTop(5).Text($"{stock.StockName} · {stockReference}");
                         header.Item().PaddingTop(3).Text(
                             $"Category: {(string.IsNullOrWhiteSpace(stock.ProductCategoryName) ? "Uncategorized" : stock.ProductCategoryName)}    Unit: {QuantityUnitFormatter.Format(stock.Unit)}");
-                        header.Item().PaddingTop(3).Text($"Generated: {DateTime.Now:dd MMM yyyy HH:mm}")
+                        header.Item().PaddingTop(3).Text($"History period: {periodDescription}");
+                        header.Item().PaddingTop(3).Text($"Movements: {movements.Count}    Generated: {DateTime.Now:dd MMM yyyy HH:mm}")
                             .FontColor(Colors.Grey.Darken1);
                     });
                     ReportBranding.AddHeaderLogo(row.ConstantItem(88));
