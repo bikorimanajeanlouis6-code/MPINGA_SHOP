@@ -2,6 +2,8 @@
     <div class="nav-brand">
         <img src="images/mpinga-shop-logo.png" alt="Mpinga Farm Meat Market and Butchery" />
     </div>
+    <AuthorizeView Roles="Cashier, Admin">
+    <Authorized>
     <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.SpaceDashboard">Dashboard</MudNavLink>
     <MudNavLink Href="/Customer" Icon="@Icons.Material.Filled.People">Customers</MudNavLink>
      <MudNavLink Href="/SaleItems" Icon="@Icons.Material.Filled.ShoppingBasket">Sale Items</MudNavLink>
@@ -10,6 +12,8 @@
      <MudNavLink Href="/Payment" Icon="@Icons.Material.Filled.Payment">Payments</MudNavLink>
     <MudNavLink Href="/products" Icon="@Icons.Material.Filled.ShoppingCart">Products</MudNavLink>
     <MudNavLink Href="/Replenishment" Icon="@Icons.Material.Filled.Inventory2">Replenishments</MudNavLink>
+      </Authorized>
+    </AuthorizeView>
     @if (UserContext.IsAdmin)
     {
         <MudNavLink Href="/Expenses" Icon="@Icons.Material.Filled.Receipt">Expenses</MudNavLink>

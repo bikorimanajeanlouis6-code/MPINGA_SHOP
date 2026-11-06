@@ -23,261 +23,261 @@ build_property.TargetFrameworkVersion = v10.0
 build_property.EntryPointFilePath = 
 build_property.RootNamespace = Web
 build_property.RootNamespace = Web
-build_property.ProjectDir = C:\Users\hp\source\repos\MPINGA_SHOP\Web\
+build_property.ProjectDir = C:\Users\hp\source\repos\MPINGA_SHOP\web\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 10.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = C:\Users\hp\source\repos\MPINGA_SHOP\Web
+build_property.MSBuildProjectDirectory = C:\Users\hp\source\repos\MPINGA_SHOP\web
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 10.0
 build_property.EnableCodeStyleSeverity = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/App.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/App.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBcHAucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Layout/AuthLayout.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Layout/AuthLayout.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcQXV0aExheW91dC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/Account.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/Account.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBY2NvdW50LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/AccountDetails.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/AccountDetails.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBY2NvdW50RGV0YWlscy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/AddAccount.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/AddAccount.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZGRBY2NvdW50LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/AddCustomer.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/AddCustomer.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZGRDdXN0b21lci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/AddExpense.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/AddExpense.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZGRFeHBlbnNlLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/AddExpenseType.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/AddExpenseType.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZGRFeHBlbnNlVHlwZS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/AddPayment.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/AddPayment.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZGRQYXltZW50LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/AddPaymentMethod.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/AddPaymentMethod.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZGRQYXltZW50TWV0aG9kLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/AddProduct.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/AddProduct.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZGRQcm9kdWN0LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/AddProductCategory.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/AddProductCategory.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZGRQcm9kdWN0Q2F0ZWdvcnkucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/AddReplenishment.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/AddReplenishment.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZGRSZXBsZW5pc2htZW50LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/AddSale.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/AddSale.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZGRTYWxlLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/AddSaleItem.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/AddSaleItem.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZGRTYWxlSXRlbS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/AddUser.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/AddUser.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZGRVc2VyLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/Counter.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/Counter.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDb3VudGVyLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/CreditReport.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/CreditReport.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDcmVkaXRSZXBvcnQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/CreditStatementDialog.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/CreditStatementDialog.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDcmVkaXRTdGF0ZW1lbnREaWFsb2cucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/Customer.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/Customer.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDdXN0b21lci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/CustomerReport.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/CustomerReport.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDdXN0b21lclJlcG9ydC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/DepositAccount.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/DepositAccount.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xEZXBvc2l0QWNjb3VudC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/EditAccountBalance.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/EditAccountBalance.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xFZGl0QWNjb3VudEJhbGFuY2UucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/EditProduct.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/EditProduct.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xFZGl0UHJvZHVjdC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/Error.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/Error.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xFcnJvci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/ExpenseDetails.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/ExpenseDetails.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xFeHBlbnNlRGV0YWlscy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/Expenses.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/Expenses.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xFeHBlbnNlcy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/ExpenseType.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/ExpenseType.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xFeHBlbnNlVHlwZS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/Home.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/Home.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xIb21lLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/IncomeStatement.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/IncomeStatement.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xJbmNvbWVTdGF0ZW1lbnQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/IncomeStatementPdfDialog.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/IncomeStatementPdfDialog.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xJbmNvbWVTdGF0ZW1lbnRQZGZEaWFsb2cucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/Login.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/Login.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dpbi5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/Logout.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/Logout.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dvdXQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/NotFound.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/NotFound.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xOb3RGb3VuZC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/Payment.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/Payment.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQYXltZW50LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/PaymentDetails.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/PaymentDetails.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQYXltZW50RGV0YWlscy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/PaymentMethod.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/PaymentMethod.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQYXltZW50TWV0aG9kLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/ProducCategory.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/ProducCategory.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQcm9kdWNDYXRlZ29yeS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/Product.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/Product.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQcm9kdWN0LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/ProductCategory.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/ProductCategory.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQcm9kdWN0Q2F0ZWdvcnkucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/ProductDetails.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/ProductDetails.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQcm9kdWN0RGV0YWlscy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/Repenishment.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/Repenishment.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZXBlbmlzaG1lbnQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/ReplenishmentDetails.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/ReplenishmentDetails.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZXBsZW5pc2htZW50RGV0YWlscy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/ReplenishmentReport.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/ReplenishmentReport.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZXBsZW5pc2htZW50UmVwb3J0LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/Sale.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/Sale.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xTYWxlLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/SaleItem.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/SaleItem.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xTYWxlSXRlbS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/SaleItemDetails.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/SaleItemDetails.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xTYWxlSXRlbURldGFpbHMucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/SaleItemsReport.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/SaleItemsReport.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xTYWxlSXRlbXNSZXBvcnQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/SaleOperationsReport.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/SaleOperationsReport.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xTYWxlT3BlcmF0aW9uc1JlcG9ydC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/SalesReport.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/SalesReport.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xTYWxlc1JlcG9ydC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/Stock.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/Stock.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xTdG9jay5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/StockDetails.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/StockDetails.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xTdG9ja0RldGFpbHMucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/StockReport.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/StockReport.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xTdG9ja1JlcG9ydC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/User.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/User.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/ViewSaleDetails.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/ViewSaleDetails.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xWaWV3U2FsZURldGFpbHMucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Pages/Weather.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Pages/Weather.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xXZWF0aGVyLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/RedirectToLogin.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/RedirectToLogin.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xSZWRpcmVjdFRvTG9naW4ucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Routes.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Routes.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xSb3V0ZXMucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/_Imports.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/_Imports.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xfSW1wb3J0cy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Layout/MainLayout.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Layout/MainLayout.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcTWFpbkxheW91dC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = b-433x3xy72i
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Layout/NavMenu.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Layout/NavMenu.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcTmF2TWVudS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = b-fobg55ohz2
 
-[C:/Users/hp/source/repos/MPINGA_SHOP/Web/Components/Layout/ReconnectModal.razor]
+[C:/Users/hp/source/repos/MPINGA_SHOP/web/Components/Layout/ReconnectModal.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcUmVjb25uZWN0TW9kYWwucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = b-2bofksppkm
