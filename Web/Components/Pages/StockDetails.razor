@@ -267,7 +267,7 @@
         {
             await JS.InvokeVoidAsync(
                 "customerReportDownloads.printPdf",
-                Convert.ToBase64String(StockDetailsPdfBuilder.CreatePdf(Stock, Movements)));
+                Convert.ToBase64String(StockDetailsPdfBuilder.CreatePdf(Stock, Movements, "All time")));
         }
         catch (Exception exception)
         {
@@ -286,7 +286,7 @@
             var fileName = $"stock-details-{Stock.Id}-{DateTime.Now:yyyyMMdd}.pdf";
             await JS.InvokeVoidAsync(
                 "customerReportDownloads.downloadPdf",
-                Convert.ToBase64String(StockDetailsPdfBuilder.CreatePdf(Stock, Movements)),
+                Convert.ToBase64String(StockDetailsPdfBuilder.CreatePdf(Stock, Movements, "All time")),
                 fileName);
         }
         catch (Exception exception)

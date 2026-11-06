@@ -88,3 +88,4 @@ C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\forms-fix-buildcheck\Application.pd
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-compile-fix\Application.deps.json
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-compile-fix\Application.dll
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-compile-fix\Application.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Debug\net10.0\Application.sourcelink.json

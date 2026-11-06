@@ -80,3 +80,4 @@ C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\forms-fix-buildcheck\Domain.pdb
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-compile-fix\Domain.deps.json
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-compile-fix\Domain.dll
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\replenishment-compile-fix\Domain.pdb
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Domain\obj\Debug\net10.0\Domain.sourcelink.json
