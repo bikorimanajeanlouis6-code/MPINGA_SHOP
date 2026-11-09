@@ -13,9 +13,13 @@
             <MudGrid>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="customer.CustomerName"
+                                  For="@(() => customer.CustomerName)"
                                   Label="Customer Name"
                                   Variant="Variant.Outlined"
-                                  Margin="Margin.Dense" />
+                                  Margin="Margin.Dense"
+                                  Required="true"
+                                  RequiredError="Customer name is required." />
+                    <ValidationMessage For="@(() => customer.CustomerName)" />
                 </MudItem>
                 @* <MudItem xs="12">
                     <MudTextField @bind-Value="customer.Email"

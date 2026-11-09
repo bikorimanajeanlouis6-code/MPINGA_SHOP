@@ -5,6 +5,7 @@ namespace Application.DTOs;
 public class AddCustomerDTO
 {
     public int Id { get; set; }
+    [Required(ErrorMessage = "Customer name is required.")]
     public string CustomerName { get; set; } = string.Empty;
     [Required(ErrorMessage = "Select the customer's sex.")]
     public string Sex { get; set; } = string.Empty;

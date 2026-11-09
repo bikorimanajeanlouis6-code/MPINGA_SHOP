@@ -13,3 +13,4 @@ C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Release\net10.0\Applic
 C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Release\net10.0\refint\Application.dll
 C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Release\net10.0\Application.pdb
 C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Release\net10.0\ref\Application.dll
+C:\Users\hp\source\repos\MPINGA_SHOP\Core\Application\obj\Release\net10.0\Application.sourcelink.json

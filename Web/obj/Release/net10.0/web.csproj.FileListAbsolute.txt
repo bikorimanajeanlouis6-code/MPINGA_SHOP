@@ -58,7 +58,6 @@ C:\Users\hp\source\repos\MPINGA_SHOP\Web\bin\Release\net10.0\Azure.Core.dll
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\bin\Release\net10.0\Azure.Identity.dll
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\bin\Release\net10.0\Humanizer.dll
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\bin\Release\net10.0\Microsoft.AspNetCore.Identity.EntityFrameworkCore.dll
-C:\Users\hp\source\repos\MPINGA_SHOP\Web\bin\Release\net10.0\Microsoft.AspNetCore.Identity.UI.dll
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\bin\Release\net10.0\Microsoft.Bcl.AsyncInterfaces.dll
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\bin\Release\net10.0\Microsoft.Bcl.Cryptography.dll
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\bin\Release\net10.0\Microsoft.Build.dll
@@ -221,7 +220,6 @@ C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\web.csproj.Assembly
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\rpswa.dswa.cache.json
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\web.GeneratedMSBuildEditorConfig.editorconfig
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\web.csproj.CoreCompileInputs.cache
-C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\web.MvcApplicationPartsAssemblyInfo.cs
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\web.MvcApplicationPartsAssemblyInfo.cache
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\rjimswa.dswa.cache.json
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\rjsmrazor.dswa.cache.json
@@ -294,4 +292,6 @@ C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\refint\web.dll
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\web.pdb
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\web.genruntimeconfig.cache
 C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\ref\web.dll
-C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\compressed\sz8axvjuya-{0}-9x7n0cwgrx-9x7n0cwgrx.gz
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\web.sourcelink.json
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\compressed\sz8axvjuya-{0}-939zstcm2p-939zstcm2p.gz
+C:\Users\hp\source\repos\MPINGA_SHOP\Web\obj\Release\net10.0\compressed\br5lahbydv-{0}-2gzky0n2qv-2gzky0n2qv.gz

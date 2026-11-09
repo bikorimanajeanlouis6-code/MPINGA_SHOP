@@ -1,13 +1,13 @@
 @page "/Customer"
 @using Application.Services.CustomerServices
 @using Application.DTOs
-@using Application.Services.SaleItemsServices
 @using Web.Formatting
 @rendermode InteractiveServer
  @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]  
 @inject IDialogService DialogService
 @inject ICustomerService CustomerService
+@inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject ILogger<Customer> Logger
 
@@ -128,9 +128,8 @@
                                    Color="Color.Primary"
                                    Size="Size.Small"
                                    StartIcon="@Icons.Material.Filled.AddShoppingCart"
-                                   Disabled="@isOpeningSaleItems"
-                                   OnClick="@(() => OpenAddSaleItemsAsync(context.Item))">
-                            Add to Sale
+                                   OnClick="@(() => OpenAddSaleItems(context.Item))">
+                                    Add to Sale
                         </MudButton>
                     </CellTemplate>
                 </TemplateColumn>
@@ -149,7 +148,6 @@
 {
         private string _searchString = string.Empty;
         private bool isOpeningDialog;
-        private bool isOpeningSaleItems;
 
         private Func<GetCustomerDTO, bool> _quickFilter => x =>
         {
@@ -251,43 +249,8 @@
             }
         }
 
-        private async Task OpenAddSaleItemsAsync(GetCustomerDTO customer)
-        {
-            if (isOpeningSaleItems)
-                return;
-
-            isOpeningSaleItems = true;
-            try
-            {
-                var parameters = new DialogParameters<AddSaleItem>
-                {
-                    { dialog => dialog.CustomerId, customer.Id }
-                };
-                var dialog = await DialogService.ShowAsync<AddSaleItem>(
-                    $"Add Items to {customer.CustomerName}'s Sale",
-                    parameters,
-                    new DialogOptions
-                    {
-                        CloseButton = true,
-                        CloseOnEscapeKey = true,
-                        MaxWidth = MaxWidth.Medium,
-                        FullWidth = true
-                    });
-                var result = await dialog.Result;
-
-                if (result is not null && !result.Canceled && result.Data is true)
-                    await LoadCustomersAsync();
-            }
-            catch (Exception exception)
-            {
-                Logger.LogError(exception, "Failed to open sale items for customer {CustomerId}.", customer.Id);
-                Snackbar.Add("Could not open the add-items form.", Severity.Error);
-            }
-            finally
-            {
-                isOpeningSaleItems = false;
-            }
-        }
+        private void OpenAddSaleItems(GetCustomerDTO customer) =>
+            NavigationManager.NavigateTo($"/SaleItems?customerId={customer.Id}");
 
 }
 

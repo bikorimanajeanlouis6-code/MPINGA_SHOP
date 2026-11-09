@@ -39,7 +39,7 @@
                            ButtonType="ButtonType.Button"
                            Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.AddShoppingCart"
-                           OnClick="@OpenAddSaleItemAsync"
+                           OnClick="@(() => OpenAddSaleItemAsync())"
                            Disabled="@isOpeningDialog">
                     @(isOpeningDialog ? "Opening..." : "Add Items to Sale")
                 </MudButton>
@@ -101,6 +101,9 @@
 </MudContainer>
 
 @code {
+    [SupplyParameterFromQuery(Name = "customerId")]
+    public int? CustomerId { get; set; }
+
     private string _searchString = string.Empty;
     private List<GetSaleItemsDTO> saleItems = new();
     private bool isOpeningDialog;
@@ -108,7 +111,22 @@
 
     protected override async Task OnInitializedAsync()
     {
-        saleItems = await SaleItemsService.GetAllSaleItemsAsync();
+        await LoadSaleItemsAsync();
+        if (CustomerId.HasValue)
+            await OpenAddSaleItemAsync(CustomerId);
+    }
+
+    private async Task LoadSaleItemsAsync()
+    {
+        try
+        {
+            saleItems = await SaleItemsService.GetAllSaleItemsAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load sale items.");
+            Snackbar.Add("Could not load sale items.", Severity.Error);
+        }
     }
 
     private Func<GetSaleItemsDTO, bool> QuickFilter => item =>
@@ -126,7 +144,7 @@
             || item.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
     };
 
-    private async Task OpenAddSaleItemAsync()
+    private async Task OpenAddSaleItemAsync(int? customerId = null)
     {
         if (isOpeningDialog)
             return;
@@ -134,8 +152,13 @@
         isOpeningDialog = true;
         try
         {
+            var parameters = new DialogParameters<AddSaleItem>();
+            if (customerId.HasValue)
+                parameters.Add(dialog => dialog.CustomerId, customerId.Value);
+
             var dialog = await DialogService.ShowAsync<AddSaleItem>(
                 "Add Items to Sale",
+                parameters,
                 new DialogOptions
                 {
                     CloseButton = true,
@@ -145,7 +168,8 @@
                 });
             var result = await dialog.Result;
 
-            saleItems = await SaleItemsService.GetAllSaleItemsAsync();
+            if (result is not null && !result.Canceled && result.Data is true)
+                await LoadSaleItemsAsync();
         }
         catch (Exception exception)
         {

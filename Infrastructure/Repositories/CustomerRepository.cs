@@ -40,6 +40,10 @@ namespace Infrastructure.Repositories
         public async Task AddCustomerAsync(AddCustomerDTO customer)
         {
             ArgumentNullException.ThrowIfNull(customer);
+            var customerName = customer.CustomerName?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(customerName))
+                throw new ArgumentException("Customer name is required.", nameof(customer));
+
             var phoneNumber = customer.PhoneNumber?.Trim() ?? string.Empty;
             if (phoneNumber.Length != 10 || phoneNumber.Any(character => character is < '0' or > '9'))
                 throw new ArgumentException("Phone number must contain exactly 10 digits.", nameof(customer));
@@ -52,10 +56,14 @@ namespace Infrastructure.Repositories
 
             await _dbcontext.Customers.AddAsync(new Customer
             {
-                Name = customer.CustomerName,
+                Name = customerName,
                 Sex = customer.Sex,
                 Email = customer.Email,
                 PhoneNumber = phoneNumber,
+                AmountConsumed = "0",
+                AmountPaid = "0",
+                Balance = "0",
+                Address = string.Empty,
                 Status = customer.Status,
                 UserAdded = customer.UserAdded,
                 DateAdded = customer.DateAdded
