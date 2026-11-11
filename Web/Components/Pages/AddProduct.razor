@@ -13,15 +13,49 @@
         <EditForm Model="@product" OnValidSubmit="SaveProductAsync">
             <DataAnnotationsValidator />
             <MudGrid>
-                <MudItem xs="12">
-                    <MudTextField @bind-Value="product.ProductName"
-                                  For="@(() => product.ProductName)"
-                                  Label="Product Name"
-                                  Variant="Variant.Outlined"
-                                  Margin="Margin.Dense"
-                                  AutoFocus="true"
-                                  Class="dialog-input" />
+               <ValidationMessage For="@(() => product.ProductCategoryId)" />
+                        @if (!isLoadingCategories && categories.Count == 0)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Warning">
+                                No product categories exist yet. Add a category before saving a product.
+                            </MudText>
+                        }
+
+                     <MudItem xs="12">
+                    @if (categoryLoadError)
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mb-2">
+                            Could not load product categories. Try again or close this dialog.
+                        </MudAlert>
+                        <MudButton OnClick="LoadCategoriesAsync"
+                                   Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Disabled="@isLoadingCategories">
+                            Retry loading categories
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudSelect T="int"
+                                   @bind-Value="product.ProductCategoryId"
+                                   For="@(() => product.ProductCategoryId)"
+                                   Label="Product Category"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Required="true"
+                                   Disabled="@isLoadingCategories"
+                                   Class="dialog-input">
+                            @foreach (var category in categories)
+                            {
+                                <MudSelectItem T="int" Value="@category.Id">
+                                    @category.ProductCategoryName
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                        
+                    }
                 </MudItem>
+   
                 <MudItem xs="12">
                     <MudTextField @bind-Value="product.ProductPrice"
                                   For="@(() => product.ProductPrice)"
@@ -56,47 +90,7 @@
                     </MudSelect>
                     <ValidationMessage For="@(() => product.Unit)" />
                 </MudItem>
-                <MudItem xs="12">
-                    @if (categoryLoadError)
-                    {
-                        <MudAlert Severity="Severity.Error" Class="mb-2">
-                            Could not load product categories. Try again or close this dialog.
-                        </MudAlert>
-                        <MudButton OnClick="LoadCategoriesAsync"
-                                   Variant="Variant.Outlined"
-                                   Color="Color.Primary"
-                                   Disabled="@isLoadingCategories">
-                            Retry loading categories
-                        </MudButton>
-                    }
-                    else
-                    {
-                        <MudSelect T="int"
-                                   @bind-Value="product.ProductCategoryId"
-                                   For="@(() => product.ProductCategoryId)"
-                                   Label="Product Category"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense"
-                                   Required="true"
-                                   Disabled="@isLoadingCategories"
-                                   Class="dialog-input">
-                            @foreach (var category in categories)
-                            {
-                                <MudSelectItem T="int" Value="@category.Id">
-                                    @category.ProductCategoryName
-                                </MudSelectItem>
-                            }
-                        </MudSelect>
-                        <ValidationMessage For="@(() => product.ProductCategoryId)" />
-                        @if (!isLoadingCategories && categories.Count == 0)
-                        {
-                            <MudText Typo="Typo.caption" Color="Color.Warning">
-                                No product categories exist yet. Add a category before saving a product.
-                            </MudText>
-                        }
-                    }
-                </MudItem>
-            </MudGrid>
+                </MudGrid>
 
             <div class="d-flex justify-end mt-4">
                 <MudButton Color="Color.Primary"

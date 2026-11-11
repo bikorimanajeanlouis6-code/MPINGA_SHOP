@@ -4,33 +4,38 @@
 @using Application.Services.StockServices
 @using Web.Formatting
 @rendermode InteractiveServer
- @using Microsoft.AspNetCore.Authorization
-@attribute [Authorize]  
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @inject IStockService StockService
 @inject IDialogService DialogService
 @inject ILogger<Stock> Logger
 @inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudStack Spacing="3">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
-            <MudText Typo="Typo.h5">Current Stock</MudText>
-            <MudSpacer />
-            <MudTextField @bind-Value="_searchString"
-                          Placeholder="Search stock"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search"
-                          Immediate="true"
-                          Variant="Variant.Outlined"
-                          Margin="Margin.Dense"
-                          Class="me-2" />
-            <MudButton Variant="Variant.Text"
-                       StartIcon="@Icons.Material.Filled.Refresh"
-                       OnClick="LoadStockAsync"
-                       Disabled="@isLoading">
-                Refresh
-            </MudButton>
-        </MudStack>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="stock-page">
+    <MudStack Spacing="4">
+        <MudPaper Class="stock-hero pa-5" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.overline" Color="Color.Primary">INVENTORY MANAGEMENT</MudText>
+                    <MudText Typo="Typo.h4" Class="stock-title">Stock overview</MudText>
+                    <MudText Color="Color.Secondary">Monitor inventory levels, stock value and product availability.</MudText>
+                </MudStack>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Assessment"
+                               Href="/StockReport">
+                        Stock report
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               Href="/Replenishment">
+                        Add replenishment
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
 
         @if (isLoading)
         {
@@ -38,118 +43,280 @@
         }
         else if (loadError)
         {
-            <MudAlert Severity="Severity.Error">
-                Stock could not be loaded.
+            <MudAlert Severity="Severity.Error" ShowCloseIcon="false">
+                Stock could not be loaded. Please try again.
                 <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="LoadStockAsync">Retry</MudButton>
             </MudAlert>
         }
         else
         {
-            <MudGrid Spacing="2">
-                <MudItem xs="12" sm="4">
-                    <MudPaper Class="pa-4 stock-summary" Elevation="1">
-                        <MudText Typo="Typo.overline" Color="Color.Secondary">Stock Entries</MudText>
-                        <MudText Typo="Typo.h5">@FilteredStock.Count</MudText>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6" lg="3">
+                    <MudPaper Class="stock-metric pa-4" Elevation="1">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Products tracked</MudText>
+                                <MudText Typo="Typo.h4">@TrackedProductCount.ToString("N0", CultureInfo.CurrentCulture)</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@stockItems.Count.ToString("N0", CultureInfo.CurrentCulture) stock entries</MudText>
+                            </MudStack>
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" Size="Size.Large" />
+                        </MudStack>
                     </MudPaper>
                 </MudItem>
-                <MudItem xs="12" sm="4">
-                    <MudPaper Class="pa-4 stock-summary" Elevation="1">
-                        <MudText Typo="Typo.overline" Color="Color.Secondary">Available Quantity</MudText>
-                        <MudText Typo="Typo.body1">@FormatQuantityTotals(FilteredStock, stock => stock.QuantityAvailable)</MudText>
+                <MudItem xs="12" sm="6" lg="3">
+                    <MudPaper Class="stock-metric pa-4" Elevation="1">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Available quantity</MudText>
+                                <MudText Typo="Typo.h6">@FormatQuantityTotals(stockItems, stock => stock.QuantityAvailable)</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Across all units</MudText>
+                            </MudStack>
+                            <MudIcon Icon="@Icons.Material.Filled.Warehouse" Color="Color.Info" Size="Size.Large" />
+                        </MudStack>
                     </MudPaper>
                 </MudItem>
-                <MudItem xs="12" sm="4">
-                    <MudPaper Class="pa-4 stock-summary" Elevation="1">
-                        <MudText Typo="Typo.overline" Color="Color.Secondary">Available Stock Value</MudText>
-                        <MudText Typo="Typo.h5">@FormatMoney(FilteredStock.Sum(stock => stock.QuantityAvailable * stock.LastPrice))</MudText>
+                <MudItem xs="12" sm="6" lg="3">
+                    <MudPaper Class="stock-metric pa-4" Elevation="1">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Inventory value</MudText>
+                                <MudText Typo="Typo.h5">@FormatMoney(InventoryValue)</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">At latest purchase price</MudText>
+                            </MudStack>
+                            <MudIcon Icon="@Icons.Material.Filled.Payments" Color="Color.Success" Size="Size.Large" />
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" lg="3">
+                    <MudPaper Class="stock-metric pa-4" Elevation="1">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Out of stock</MudText>
+                                <MudText Typo="Typo.h4" Color="@(OutOfStockCount > 0 ? Color.Error : Color.Success)">
+                                    @OutOfStockCount.ToString("N0", CultureInfo.CurrentCulture)
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Entries with no available quantity</MudText>
+                            </MudStack>
+                            <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Color="@(OutOfStockCount > 0 ? Color.Error : Color.Success)" Size="Size.Large" />
+                        </MudStack>
                     </MudPaper>
                 </MudItem>
             </MudGrid>
 
-            <MudDataGrid T="GetStockDTO"
-                         Items="@FilteredStock"
-                         SortMode="SortMode.Multiple"
-                         Dense="true"
-                         Hover="true"
-                         Elevation="1">
-                <Columns>
-                    <TemplateColumn Title="Reference">
-                        <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Stock, context.Item.Id)</CellTemplate>
-                    </TemplateColumn>
-                    <PropertyColumn Property="stock => stock.StockName" Title="Product" />
-                    <PropertyColumn Property="stock => stock.ProductCategoryName" Title="Category" />
-                    <TemplateColumn Title="Quantity In">
-                        <CellTemplate>@FormatQuantity(context.Item.QuantityInStock, context.Item.Unit)</CellTemplate>
-                    </TemplateColumn>
-                    <TemplateColumn Title="Quantity Sold">
-                        <CellTemplate>@FormatQuantity(context.Item.QuantitySold, context.Item.Unit)</CellTemplate>
-                    </TemplateColumn>
-                    <TemplateColumn Title="Available">
-                        <CellTemplate>
-                            <MudChip T="string"
-                                     Size="Size.Small"
-                                     Variant="Variant.Outlined"
-                                     Color="@(context.Item.QuantityAvailable > 0 ? Color.Success : Color.Default)">
-                                @FormatQuantity(context.Item.QuantityAvailable, context.Item.Unit)
-                            </MudChip>
-                        </CellTemplate>
-                    </TemplateColumn>
-                    <TemplateColumn Title="Selling Price">
-                        <CellTemplate>@FormatMoney(context.Item.SellingPrice)</CellTemplate>
-                    </TemplateColumn>
-                    <TemplateColumn Title="Purchase Price">
-                        <CellTemplate>@FormatMoney(context.Item.LastPrice)</CellTemplate>
-                    </TemplateColumn>
-                    <TemplateColumn Title="Stock Value">
-                        <CellTemplate>@FormatMoney(context.Item.QuantityAvailable * context.Item.LastPrice)</CellTemplate>
-                    </TemplateColumn>
-                    <TemplateColumn Title="Details">
-                        <CellTemplate>
-                            <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Primary"
-                                       Size="Size.Small"
-                                       StartIcon="@Icons.Material.Filled.Visibility"
-                                       Disabled="@isOpeningDetails"
-                                       OnClick="@(() => OpenDetailsAsync(context.Item))">
-                                View details
-                            </MudButton>
-                        </CellTemplate>
-                    </TemplateColumn>
-                </Columns> 
-                <NoRecordsContent>
-                    <MudText Class="pa-4" Color="Color.Secondary">
-                        No stock matches your search. Add inventory through Replenishments.
-                    </MudText>
-                </NoRecordsContent>
-                <PagerContent>
-                    <MudDataGridPager T="GetStockDTO" />
-                </PagerContent>
-            </MudDataGrid>
+            <MudPaper Class="stock-list-panel" Elevation="1">
+                <MudStack Spacing="0">
+                    <MudStack Class="stock-list-heading pa-4" Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h6">Inventory</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @FilteredStock.Count.ToString("N0", CultureInfo.CurrentCulture) matching stock entries
+                            </MudText>
+                        </MudStack>
+                        <MudSpacer />
+                        <MudTextField @bind-Value="_searchString"
+                                      Placeholder="Search products or references"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Search"
+                                      Immediate="true"
+                                      Clearable="true"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Class="stock-search" />
+                        <MudSelect T="string"
+                                   @bind-Value="_selectedCategory"
+                                   Label="Category"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Class="stock-filter">
+                            <MudSelectItem T="string" Value="@AllCategoriesValue">All categories</MudSelectItem>
+                            @foreach (var category in AvailableCategories)
+                            {
+                                <MudSelectItem T="string" Value="@category">@category</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudSelect T="string"
+                                   @bind-Value="_selectedAvailability"
+                                   Label="Availability"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Class="stock-filter">
+                            <MudSelectItem T="string" Value="@AllAvailabilityValue">All stock</MudSelectItem>
+                            <MudSelectItem T="string" Value="@AvailableValue">In stock</MudSelectItem>
+                            <MudSelectItem T="string" Value="@OutOfStockValue">Out of stock</MudSelectItem>
+                        </MudSelect>
+                        <MudButton Variant="Variant.Text"
+                                   StartIcon="@Icons.Material.Filled.Refresh"
+                                   OnClick="LoadStockAsync"
+                                   Disabled="@isLoading">
+                            Refresh
+                        </MudButton>
+                    </MudStack>
 
+                    <MudDataGrid T="GetStockDTO"
+                                 Items="@FilteredStock"
+                                 SortMode="SortMode.Multiple"
+                                 Dense="true"
+                                 Hover="true"
+                                 Elevation="0">
+                        <Columns>
+                            <TemplateColumn Title="Reference">
+                                <CellTemplate>
+                                    <MudText Typo="Typo.body2" Class="stock-reference">
+                                        @EntityReferenceFormatter.Format(EntityReferenceType.Stock, context.Item.Id)
+                                    </MudText>
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <PropertyColumn Property="stock => stock.StockName" Title="Product" />
+                            <PropertyColumn Property="stock => stock.ProductCategoryName" Title="Category" />
+                            <TemplateColumn Title="Available">
+                                <CellTemplate>
+                                    <MudChip T="string"
+                                             Size="Size.Small"
+                                             Variant="Variant.Filled"
+                                             Color="@(context.Item.QuantityAvailable > 0 ? Color.Success : Color.Error)">
+                                        @FormatQuantity(context.Item.QuantityAvailable, context.Item.Unit)
+                                    </MudChip>
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Quantity In">
+                                <CellTemplate>@FormatQuantity(context.Item.QuantityInStock, context.Item.Unit)</CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Quantity Sold">
+                                <CellTemplate>@FormatQuantity(context.Item.QuantitySold, context.Item.Unit)</CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Selling Price">
+                                <CellTemplate>@FormatMoney(context.Item.SellingPrice)</CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Stock Value">
+                                <CellTemplate>@FormatMoney(context.Item.QuantityAvailable * context.Item.LastPrice)</CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Last Updated">
+                                <CellTemplate>@context.Item.LastlyModified.ToString("dd MMM yyyy", CultureInfo.CurrentCulture)</CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Details">
+                                <CellTemplate>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                                   Color="Color.Primary"
+                                                   Size="Size.Small"
+                                                   aria-label="@($"View details for {context.Item.StockName}")"
+                                                   Disabled="@isOpeningDetails"
+                                                   OnClick="@(() => OpenDetailsAsync(context.Item))" />
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                        <NoRecordsContent>
+                            <MudText Class="pa-6" Align="Align.Center" Color="Color.Secondary">
+                                No stock matches these filters. Try changing your search or category.
+                            </MudText>
+                        </NoRecordsContent>
+                        <PagerContent>
+                            <MudDataGridPager T="GetStockDTO" />
+                        </PagerContent>
+                    </MudDataGrid>
+                </MudStack>
+            </MudPaper>
         }
     </MudStack>
 </MudContainer>
 
 <style>
-    .stock-summary {
+    .stock-page {
+        padding-top: 1.5rem;
+        padding-bottom: 2rem;
+    }
+
+    .stock-hero {
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 12px;
+        background: linear-gradient(120deg, var(--mud-palette-surface), var(--mud-palette-background-grey));
+    }
+
+    .stock-title {
+        font-weight: 700;
+        letter-spacing: -0.02em;
+    }
+
+    .stock-metric {
+        min-height: 132px;
         height: 100%;
-        border-top: 3px solid var(--mud-palette-primary);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 10px;
+    }
+
+    .stock-list-panel {
+        overflow: hidden;
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 10px;
+    }
+
+    .stock-list-heading {
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .stock-search {
+        min-width: 240px;
+    }
+
+    .stock-filter {
+        min-width: 165px;
+    }
+
+    .stock-reference {
+        font-weight: 600;
+        color: var(--mud-palette-primary);
+    }
+
+    @@media (max-width: 600px) {
+        .stock-page {
+            padding-top: 0.75rem;
+        }
+
+        .stock-search,
+        .stock-filter {
+            width: 100%;
+        }
     }
 </style>
 
 @code {
+    private const string AllCategoriesValue = "\0all-categories";
+    private const string AllAvailabilityValue = "all";
+    private const string AvailableValue = "available";
+    private const string OutOfStockValue = "out-of-stock";
+
     private string _searchString = string.Empty;
+    private string _selectedCategory = AllCategoriesValue;
+    private string _selectedAvailability = AllAvailabilityValue;
     private List<GetStockDTO> stockItems = new();
     private bool isLoading;
     private bool loadError;
     private bool isOpeningDetails;
 
+    private int TrackedProductCount => stockItems.Select(stock => stock.ProductId).Distinct().Count();
+    private int OutOfStockCount => stockItems.Count(stock => stock.QuantityAvailable <= 0);
+    private decimal InventoryValue => stockItems.Sum(stock => stock.QuantityAvailable * stock.LastPrice);
+
+    private List<string> AvailableCategories =>
+        stockItems
+            .Select(GetCategoryName)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(category => category, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
     private List<GetStockDTO> FilteredStock =>
         stockItems
             .Where(MatchesSearch)
-            .OrderByDescending(stock => stock.LastlyModified)
+            .Where(stock => _selectedCategory == AllCategoriesValue
+                || string.Equals(GetCategoryName(stock), _selectedCategory, StringComparison.OrdinalIgnoreCase))
+            .Where(stock => _selectedAvailability switch
+            {
+                AvailableValue => stock.QuantityAvailable > 0,
+                OutOfStockValue => stock.QuantityAvailable <= 0,
+                _ => true
+            })
+            .OrderBy(stock => stock.ProductCategoryName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(stock => stock.StockName, StringComparer.OrdinalIgnoreCase)
-            .ThenByDescending(stock => stock.Id)
+            .ThenByDescending(stock => stock.LastlyModified)
             .ToList();
 
     protected override Task OnInitializedAsync() => LoadStockAsync();
@@ -181,14 +348,16 @@
 
         return EntityReferenceFormatter.Format(EntityReferenceType.Stock, stock.Id).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || stock.StockName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
-            || stock.ProductCategoryName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || GetCategoryName(stock).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || stock.Unit.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
-            || stock.Status.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || stock.UserAdded.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || stock.QuantityInStock.ToString(CultureInfo.CurrentCulture).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || stock.QuantitySold.ToString(CultureInfo.CurrentCulture).Contains(_searchString, StringComparison.OrdinalIgnoreCase)
             || stock.QuantityAvailable.ToString(CultureInfo.CurrentCulture).Contains(_searchString, StringComparison.OrdinalIgnoreCase);
     }
+
+    private static string GetCategoryName(GetStockDTO stock) =>
+        string.IsNullOrWhiteSpace(stock.ProductCategoryName) ? "Uncategorized" : stock.ProductCategoryName.Trim();
 
     private static string FormatQuantity(int quantity, string? unit) =>
         $"{quantity.ToString("N0", CultureInfo.CurrentCulture)} {QuantityUnitFormatter.Format(unit)}";

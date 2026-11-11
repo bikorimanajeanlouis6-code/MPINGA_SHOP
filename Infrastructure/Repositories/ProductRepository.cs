@@ -54,8 +54,6 @@ namespace Infrastructure.Repositories
         {
             ArgumentNullException.ThrowIfNull(product);
             var normalizedName = product.ProductName?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(normalizedName))
-                throw new ArgumentException("Product name is required.", nameof(product));
             if (!decimal.TryParse(product.ProductQuantity, NumberStyles.Number, CultureInfo.InvariantCulture, out var quantity)
                 || quantity <= 0)
                 throw new ArgumentException("Product quantity must be greater than zero.", nameof(product));
@@ -64,7 +62,8 @@ namespace Infrastructure.Repositories
             if (unit is not ("kg" or "pcs"))
                 throw new ArgumentException("Select kg or pcs as the product unit.", nameof(product));
 
-            await EnsureNoDuplicateAsync(normalizedName, quantity);
+            if (!string.IsNullOrWhiteSpace(normalizedName))
+                await EnsureNoDuplicateAsync(normalizedName, quantity);
 
             await _dbcontext.Products.AddAsync(new Product
             {
@@ -88,8 +87,6 @@ namespace Infrastructure.Repositories
                 throw new ArgumentException("A valid product ID is required.", nameof(product));
 
             var normalizedName = product.ProductName?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(normalizedName))
-                throw new ArgumentException("Product name is required.", nameof(product));
             if (!decimal.TryParse(product.ProductQuantity, NumberStyles.Number, CultureInfo.InvariantCulture, out var quantity)
                 || quantity <= 0)
                 throw new ArgumentException("Product quantity must be greater than zero.", nameof(product));
@@ -102,7 +99,8 @@ namespace Infrastructure.Repositories
                 .FirstOrDefaultAsync(existingProduct => existingProduct.Id == product.Id)
                 ?? throw new KeyNotFoundException($"Product with ID {product.Id} was not found.");
 
-            await EnsureNoDuplicateAsync(normalizedName, quantity, entity.Id);
+            if (!string.IsNullOrWhiteSpace(normalizedName))
+                await EnsureNoDuplicateAsync(normalizedName, quantity, entity.Id);
 
             var hasStock = await _dbcontext.Stocks.AnyAsync(stock => stock.ProductId == entity.Id);
             if (hasStock && !string.Equals(NormalizeUnit(entity.Unit), unit, StringComparison.Ordinal))

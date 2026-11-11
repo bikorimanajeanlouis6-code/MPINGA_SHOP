@@ -5,7 +5,7 @@ public static class QuantityUnitFormatter
     public static string Format(string? unit)
     {
         if (string.IsNullOrWhiteSpace(unit))
-            return "unit not set";
+            return "kg";
 
         var normalized = unit.Trim();
         if (normalized.Equals("piece", StringComparison.OrdinalIgnoreCase)

@@ -94,7 +94,7 @@
                 </MudStack>
             </MudPaper>
 
-            <MudDataGrid T="StockCategorySummary"
+            @* <MudDataGrid T="StockCategorySummary"
                          Items="@Categories"
                          SortMode="SortMode.Multiple"
                          Dense="true"
@@ -119,7 +119,7 @@
                 <NoRecordsContent>
                     <MudText Class="pa-4" Color="Color.Secondary">No stock was added during this period.</MudText>
                 </NoRecordsContent>
-            </MudDataGrid>
+            </MudDataGrid> *@
 
             <MudText Typo="Typo.subtitle1">Stock Items</MudText>
             <MudDataGrid T="GetStockDTO"

@@ -43,7 +43,8 @@
             <TemplateColumn Title="Reference">
                 <CellTemplate>@EntityReferenceFormatter.Format(EntityReferenceType.Product, context.Item.Id)</CellTemplate>
             </TemplateColumn>
-            <PropertyColumn Property="product => product.ProductName" Title="Product Name" />
+             <PropertyColumn Property="product => product.ProductCategoryName" Title="Category" />
+            @* <PropertyColumn Property="product => product.ProductName" Title="Product Name" /> *@
             @* <PropertyColumn Property="product => product.ProductDescription" Title="Description" /> *@
             <TemplateColumn Title="Price">
                 <CellTemplate>
@@ -56,9 +57,9 @@
                 </CellTemplate>
             </TemplateColumn>
             <TemplateColumn Title="Quantity">
-                <CellTemplate>@($"{context.Item.ProductQuantity} {QuantityUnitFormatter.Format(context.Item.Unit)}")</CellTemplate>
+                <CellTemplate>@FormatProductQuantity(context.Item.ProductQuantity, context.Item.Unit)</CellTemplate>
             </TemplateColumn>
-            <PropertyColumn Property="product => product.ProductCategoryName" Title="Category" />
+           
             @* <TemplateColumn Title="Date Added">
                 <CellTemplate>
                     @context.Item.DateAdded.ToString("dd MMM yyyy")
@@ -146,6 +147,21 @@
         "Inactive" => Color.Error,
         _ => Color.Default
     };
+
+    private static string FormatProductQuantity(string? quantity, string? unit)
+    {
+        var value = quantity?.Trim() ?? string.Empty;
+        foreach (var suffix in new[] { "kilograms", "kilogram", "kgs", "kg", "pieces (pcs)", "pieces", "piece", "pcs", "pc" })
+        {
+            if (value.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            {
+                value = value[..^suffix.Length].TrimEnd();
+                break;
+            }
+        }
+
+        return $"{value} {QuantityUnitFormatter.Format(unit)}".Trim();
+    }
 
     private async Task OpenAddProductAsync()
     {
