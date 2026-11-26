@@ -1,7 +1,7 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\web\\web.csproj": {}
+    "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Web\\web.csproj": {}
   },
   "projects": {
     "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Application\\Application.csproj": {
@@ -1201,14 +1201,14 @@
         }
       }
     },
-    "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\web\\web.csproj": {
+    "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Web\\web.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\web\\web.csproj",
+        "projectUniqueName": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Web\\web.csproj",
         "projectName": "web",
-        "projectPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\web\\web.csproj",
+        "projectPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Web\\web.csproj",
         "packagesPath": "C:\\Users\\hp\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\web\\obj\\",
+        "outputPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Web\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\hp\\AppData\\Roaming\\NuGet\\NuGet.Config",
