@@ -1,7 +1,8 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY ["Application/Application.csproj", "Application/"]
+COPY ["Core/Domain/Domain.csproj", "Core/Domain/"]
+COPY ["Core/Application/Application.csproj", "Core/Application/"]
 COPY ["Infrastructure/Infrastructure.csproj", "Infrastructure/"]
 COPY ["Web/web.csproj", "Web/"]
 
@@ -11,9 +12,8 @@ COPY . .
 WORKDIR "/src/Web"
 RUN dotnet publish "web.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
-ENV ASPNETCORE_URLS=http://+:8080
-EXPOSE 8080
-ENTRYPOINT ["dotnet", "web.dll"]
+EXPOSE 10000
+ENTRYPOINT ["sh", "-c", "dotnet web.dll --urls http://0.0.0.0:${PORT:-10000}"]
