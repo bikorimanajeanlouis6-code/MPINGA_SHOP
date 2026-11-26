@@ -98,6 +98,11 @@ namespace Infrastructure.Identity
             //     await _userManager.CreateAsync(AdminUser, "Admin@123");
             // }
 
+            if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrEmpty(dto.Password))
+            {
+                return false;
+            }
+
             var user = await _userManager.FindByEmailAsync(dto.Email);
             if (user == null)
             {
@@ -110,7 +115,7 @@ namespace Infrastructure.Identity
             }
 
             var result = await _signinManager.PasswordSignInAsync(
-                user.UserName ?? dto.Email,
+                string.IsNullOrWhiteSpace(user.UserName) ? dto.Email : user.UserName,
                 dto.Password,
                 dto.RememberMe,
                 lockoutOnFailure: true
@@ -126,4 +131,3 @@ namespace Infrastructure.Identity
 }
           
     
-

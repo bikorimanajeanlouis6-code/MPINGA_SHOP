@@ -9,36 +9,57 @@ namespace Web.Controllers
     public class AccountController : ControllerBase
     {
         private readonly IIdentityService _identityService;
+        private readonly ILogger<AccountController> _logger;
 
-        public AccountController(IIdentityService identityService)
+        public AccountController(IIdentityService identityService, ILogger<AccountController> logger)
         {
             _identityService = identityService;
+            _logger = logger;
         }
 
         [HttpPost("login")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login([FromForm] string email, [FromForm] string password, [FromForm] bool rememberMe, [FromForm] string? returnUrl)
         {
-            var result = await _identityService.LoginAsync(new LoginDTO
+            try
             {
-                Email = email,
-                Password = password,
-                RememberMe = rememberMe
-            });
+                var result = await _identityService.LoginAsync(new LoginDTO
+                {
+                    Email = email,
+                    Password = password,
+                    RememberMe = rememberMe
+                });
 
-            if (result)
+                if (result)
+                {
+                    var redirect = !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl)
+                        ? returnUrl
+                        : "/";
+                    return Redirect(redirect);
+                }
+
+                return RedirectToLoginWithError("Invalid email or password.", returnUrl);
+            }
+            catch (Exception exception)
             {
-                var redirect = !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl)
-                    ? returnUrl
-                    : "/";
-                return Redirect(redirect);
+                _logger.LogError(exception, "Login could not be completed.");
+                return RedirectToLoginWithError(
+                    "Sign-in is temporarily unavailable. Please try again later.",
+                    returnUrl);
+            }
+        }
+
+        private IActionResult RedirectToLoginWithError(string message, string? returnUrl)
+        {
+            var errorUrl = $"/account/login?error={Uri.EscapeDataString(message)}";
+            if (!string.IsNullOrWhiteSpace(returnUrl))
+            {
+                errorUrl += $"&returnUrl={Uri.EscapeDataString(returnUrl)}";
             }
 
-            var errorUrl = string.IsNullOrEmpty(returnUrl)
-                ? "/account/login?error=Invalid+email+or+password"
-                : $"/account/login?error=Invalid+email+or+password&returnUrl={Uri.EscapeDataString(returnUrl)}";
             return Redirect(errorUrl);
         }
+
         [HttpPost("logout")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()

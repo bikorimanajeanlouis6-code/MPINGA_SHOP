@@ -104,3 +104,6 @@ C:\Users\hp\AppData\Local\Temp\mpinga-all-customers-build\Application.pdb
 C:\Users\hp\AppData\Local\Temp\mpinga-sale-migration-build\Application.deps.json
 C:\Users\hp\AppData\Local\Temp\mpinga-sale-migration-build\Application.dll
 C:\Users\hp\AppData\Local\Temp\mpinga-sale-migration-build\Application.pdb
+C:\Users\hp\AppData\Local\Temp\mpinga-shop-build\Debug\net10.0\Application.deps.json
+C:\Users\hp\AppData\Local\Temp\mpinga-shop-build\Debug\net10.0\Application.dll
+C:\Users\hp\AppData\Local\Temp\mpinga-shop-build\Debug\net10.0\Application.pdb
