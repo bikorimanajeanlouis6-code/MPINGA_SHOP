@@ -26,7 +26,7 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<int>, i
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
-        ApplyUserAddedToNewEntities();
+        ApplyAuditFields();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
@@ -34,11 +34,11 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<int>, i
         bool acceptAllChangesOnSuccess,
         CancellationToken cancellationToken = default)
     {
-        ApplyUserAddedToNewEntities();
+        ApplyAuditFields();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
-    private void ApplyUserAddedToNewEntities()
+    private void ApplyAuditFields()
     {
         if (_userContext is not { IsAuthenticated: true }
             || string.IsNullOrWhiteSpace(_userContext.Email))
@@ -47,26 +47,29 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<int>, i
         }
 
         foreach (var entry in ChangeTracker.Entries()
-                     .Where(entry => entry.State == EntityState.Added
-                         && entry.Metadata.FindProperty("UserAdded")?.ClrType == typeof(string)))
+                     .Where(e => e.State == EntityState.Added))
         {
-            entry.Property("UserAdded").CurrentValue = _userContext.Email;
+            var userAddedProp = entry.Metadata.FindProperty("UserAdded");
+            if (userAddedProp?.ClrType == typeof(string))
+            {
+                entry.Property("UserAdded").CurrentValue = _userContext.Email;
+            }
         }
     }
 
-    public DbSet<Account> Accounts { get; set; }
-    public DbSet<AccountDeposit> AccountDeposits { get; set; }
-    public DbSet<Customer> Customers { get; set; }
-    public DbSet<Expenses> Expenses { get; set; }
-    public DbSet<ExpenseType> ExpenseTypes { get; set; }
-    public DbSet<Payment> Payments { get; set; }
-    public DbSet<PaymentMethod> PaymentMethods { get; set; }
-    public DbSet<Sales> Sales { get; set; }
-    public DbSet<SaleItems> SalesItems { get; set; }
-    public DbSet<Product> Products { get; set; }
-    public DbSet<ProductCategory> ProductCategories { get; set; }
-    public DbSet<Replenishment> Replenishments { get; set; }
-    public DbSet<Stock> Stocks { get; set; }
+    public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<AccountDeposit> AccountDeposits => Set<AccountDeposit>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Expenses> Expenses => Set<Expenses>();
+    public DbSet<ExpenseType> ExpenseTypes => Set<ExpenseType>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
+    public DbSet<Sales> Sales => Set<Sales>();
+    public DbSet<SaleItems> SalesItems => Set<SaleItems>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductCategory> ProductCategories => Set<ProductCategory>();
+    public DbSet<Replenishment> Replenishments => Set<Replenishment>();
+    public DbSet<Stock> Stocks => Set<Stock>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -95,6 +98,5 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<int>, i
             .WithMany(account => account.Deposits)
             .HasForeignKey(deposit => deposit.AccountId)
             .OnDelete(DeleteBehavior.Cascade);
-
     }
 }
