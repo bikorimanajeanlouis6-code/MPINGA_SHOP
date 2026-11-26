@@ -1,15 +1,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy project files from root relative path
 COPY ["Web/web.csproj", "Web/"]
-COPY ["Core/Core.csproj", "Core/"]
+COPY ["Core/Application.csproj", "Core/"]
 COPY ["Infrastructure/Infrastructure.csproj", "Infrastructure/"]
 
-# Restore dependencies
 RUN dotnet restore "Web/web.csproj"
 
-# Copy full source code and publish
 COPY . .
 WORKDIR "/src/Web"
 RUN dotnet publish "web.csproj" -c Release -o /app/publish /p:UseAppHost=false
