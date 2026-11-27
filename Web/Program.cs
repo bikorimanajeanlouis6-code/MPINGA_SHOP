@@ -3,6 +3,7 @@ using Application.DependanceInjection;
 using Web.Components;
 using Infrastructure.DependanceInjection;
 using Infrastructure.Data;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 
@@ -13,6 +14,17 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddAuthorization();
 
+// Trust Render's reverse proxy headers (X-Forwarded-For / X-Forwarded-Proto)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+#pragma warning disable CS0618
+    options.KnownNetworks.Clear();
+#pragma warning restore CS0618
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 // Register application, infrastructure, and UI services
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddApplicationServices();
@@ -21,6 +33,9 @@ builder.Services.AddMudServices();
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
+
+// Forwarded headers must run before HTTPS redirection, auth, and antiforgery
+app.UseForwardedHeaders();
 
 // Apply pending EF Core migrations on startup (including on Render)
 await using (var scope = app.Services.CreateAsyncScope())
@@ -45,7 +60,6 @@ await using (var scope = app.Services.CreateAsyncScope())
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
