@@ -1,7 +1,7 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Web\\web.csproj": {}
+    "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\web\\web.csproj": {}
   },
   "projects": {
     "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Core\\Application\\Application.csproj": {
@@ -745,15 +745,11 @@
           "dependencies": {
             "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
               "target": "Package",
-              "version": "[10.0.0, )"
+              "version": "[10.0.15, )"
             },
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
-              "version": "[10.0.0, )"
-            },
-            "Microsoft.EntityFrameworkCore.SqlServer": {
-              "target": "Package",
-              "version": "[10.0.0, )"
+              "version": "[10.0.15, )"
             },
             "Microsoft.Extensions.Configuration": {
               "target": "Package",
@@ -762,6 +758,10 @@
             "Microsoft.Extensions.DependencyInjection": {
               "target": "Package",
               "version": "[10.0.0, )"
+            },
+            "Npgsql.EntityFrameworkCore.PostgreSQL": {
+              "target": "Package",
+              "version": "[10.0.4, )"
             }
           },
           "imports": [
@@ -1201,14 +1201,14 @@
         }
       }
     },
-    "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Web\\web.csproj": {
+    "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\web\\web.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Web\\web.csproj",
+        "projectUniqueName": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\web\\web.csproj",
         "projectName": "web",
-        "projectPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Web\\web.csproj",
+        "projectPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\web\\web.csproj",
         "packagesPath": "C:\\Users\\hp\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\Web\\obj\\",
+        "outputPath": "C:\\Users\\hp\\source\\repos\\MPINGA_SHOP\\web\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\hp\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -1259,12 +1259,16 @@
               "autoReferenced": true
             },
             "Microsoft.EntityFrameworkCore.Design": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
               "target": "Package",
-              "version": "[10.0.0, )"
+              "version": "[10.0.15, )"
             },
             "Microsoft.EntityFrameworkCore.Tools": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
               "target": "Package",
-              "version": "[10.0.0, )"
+              "version": "[10.0.15, )"
             },
             "MudBlazor": {
               "target": "Package",

@@ -6,12 +6,12 @@ namespace Web.Controllers
 {
     [Route("api/account")]
     [ApiController]
-    public class AccountController : ControllerBase
+    public class er : ControllerBase
     {
         private readonly IIdentityService _identityService;
-        private readonly ILogger<AccountController> _logger;
+        private readonly ILogger<er> _logger;
 
-        public AccountController(IIdentityService identityService, ILogger<AccountController> logger)
+        public er(IIdentityService identityService, ILogger<er> logger)
         {
             _identityService = identityService;
             _logger = logger;

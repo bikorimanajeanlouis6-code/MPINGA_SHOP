@@ -12,12 +12,12 @@ public static class ServiceContainer
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("MPINGASHOPCON")
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException(
-                "The 'MPINGASHOPCON' connection string is not configured.");
+                "The 'DefaultConnection' connection string is not configured.");
 
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(connectionString));
+            options.UseNpgsql(connectionString));
 
         services.AddAuthenticationService(configuration);
         services.AddHttpContextAccessor();

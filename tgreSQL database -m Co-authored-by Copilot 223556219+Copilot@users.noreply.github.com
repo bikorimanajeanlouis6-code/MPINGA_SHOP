@@ -1,0 +1,96 @@
+ Core/Application/bin/Debug/net10.0/Application.dll |  Bin [31m51200[m -> [32m51200[m bytes
+ Core/Application/bin/Debug/net10.0/Application.pdb |  Bin [31m34376[m -> [32m34376[m bytes
+ Core/Application/bin/Debug/net10.0/Domain.dll      |  Bin [31m25600[m -> [32m25600[m bytes
+ Core/Application/bin/Debug/net10.0/Domain.pdb      |  Bin [31m20096[m -> [32m20096[m bytes
+ .../obj/Debug/net10.0/Application.AssemblyInfo.cs  |    2 [32m+[m[31m-[m
+ .../net10.0/Application.AssemblyInfoInputs.cache   |    2 [32m+[m[31m-[m
+ .../Application.csproj.AssemblyReference.cache     |  Bin [31m3147[m -> [32m3147[m bytes
+ Core/Application/obj/Debug/net10.0/Application.dll |  Bin [31m51200[m -> [32m51200[m bytes
+ Core/Application/obj/Debug/net10.0/Application.pdb |  Bin [31m34376[m -> [32m34376[m bytes
+ .../obj/Debug/net10.0/ref/Application.dll          |  Bin [31m34816[m -> [32m34816[m bytes
+ .../obj/Debug/net10.0/refint/Application.dll       |  Bin [31m34816[m -> [32m34816[m bytes
+ Core/Domain/bin/Debug/net10.0/Domain.dll           |  Bin [31m25600[m -> [32m25600[m bytes
+ Core/Domain/bin/Debug/net10.0/Domain.pdb           |  Bin [31m20096[m -> [32m20096[m bytes
+ .../obj/Debug/net10.0/Domain.AssemblyInfo.cs       |    2 [32m+[m[31m-[m
+ .../Debug/net10.0/Domain.AssemblyInfoInputs.cache  |    2 [32m+[m[31m-[m
+ Core/Domain/obj/Debug/net10.0/Domain.dll           |  Bin [31m25600[m -> [32m25600[m bytes
+ Core/Domain/obj/Debug/net10.0/Domain.pdb           |  Bin [31m20096[m -> [32m20096[m bytes
+ Core/Domain/obj/Debug/net10.0/ref/Domain.dll       |  Bin [31m18432[m -> [32m18432[m bytes
+ Core/Domain/obj/Debug/net10.0/refint/Domain.dll    |  Bin [31m18432[m -> [32m18432[m bytes
+ .../20261011131639_InitialCreate.Designer.cs       |  705 [31m-------[m
+ .../Migrations/20261011131639_InitialCreate.cs     |  403 [31m----[m
+ ...1011140304_AddReplenishmentSupplier.Designer.cs |  713 [31m-------[m
+ .../20261011140304_AddReplenishmentSupplier.cs     |   40 [31m-[m
+ .../20261012102739_UpdateSalesHeader.Designer.cs   |  709 [31m-------[m
+ .../Migrations/20261012102739_UpdateSalesHeader.cs |   61 [31m-[m
+ ...1091357_AddReplenishmentPaymentLink.Designer.cs |  725 [31m-------[m
+ .../20261101091357_AddReplenishmentPaymentLink.cs  |   48 [31m-[m
+ .../20261101100656_AddCustomerSex.Designer.cs      |  729 [31m-------[m
+ .../Migrations/20261101100656_AddCustomerSex.cs    |   29 [31m-[m
+ ...61101101400_Initial1110020Migration.Designer.cs |  729 [31m-------[m
+ .../20261101101400_Initial1110020Migration.cs      |   22 [31m-[m
+ ...01120213_AddApplicationUserIdentity.Designer.cs |  999 [31m----------[m
+ .../20261101120213_AddApplicationUserIdentity.cs   |  231 [31m---[m
+ .../20261102080813_AddAccountBalance.Designer.cs   | 1002 [31m----------[m
+ .../Migrations/20261102080813_AddAccountBalance.cs |   29 [31m-[m
+ .../20261102094017_AddExpenseAccount.Designer.cs   | 1014 [31m----------[m
+ .../Migrations/20261102094017_AddExpenseAccount.cs |   53 [31m-[m
+ .../20261103144258_AddAccountDepositHistory.cs     |   48 [31m-[m
+ .../20261104152529_AddProductUnit.Designer.cs      | 1064 [31m----------[m
+ .../Migrations/20261104152529_AddProductUnit.cs    |   46 [31m-[m
+ .../20261109101500_AddLegacySaleColumnDefaults.cs  |   73 [31m-[m
+ .../Migrations/20261126143058_InitialPostgres.cs   |   22 [31m-[m
+ .../20261126145205_InitialPostgres2.Designer.cs    | 1064 [31m----------[m
+ .../Migrations/20261126145205_InitialPostgres2.cs  |   22 [31m-[m
+ .../20261126151659_InitialPostgres3.Designer.cs    | 1064 [31m----------[m
+ .../Migrations/20261126151659_InitialPostgres3.cs  |   22 [31m-[m
+ .../20261126152218_InitialPostgres5.Designer.cs    | 1064 [31m----------[m
+ .../Migrations/20261126152218_InitialPostgres5.cs  |   22 [31m-[m
+ .../DependanceInjection/ServiceContainer.cs        |    8 [32m+[m[31m-[m
+ Infrastructure/Infrastructure.csproj               |   12 [32m+[m[31m-[m
+ .../20261127124626_InitialPostgres.Designer.cs}    |  376 [32m++[m[31m--[m
+ .../Migrations/20261127124626_InitialPostgres.cs   |  671 [32m+++++++[m
+ .../ApplicationDbContextModelSnapshot.cs           |  374 [32m++[m[31m--[m
+ Infrastructure/bin/Debug/net10.0/Application.dll   |  Bin [31m51200[m -> [32m51200[m bytes
+ Infrastructure/bin/Debug/net10.0/Application.pdb   |  Bin [31m34376[m -> [32m34376[m bytes
+ Infrastructure/bin/Debug/net10.0/Domain.dll        |  Bin [31m25600[m -> [32m25600[m bytes
+ Infrastructure/bin/Debug/net10.0/Domain.pdb        |  Bin [31m20096[m -> [32m20096[m bytes
+ .../bin/Debug/net10.0/Infrastructure.deps.json     |  509 [32m+[m[31m----[m
+ .../bin/Debug/net10.0/Infrastructure.dll           |  Bin [31m371200[m -> [32m247296[m bytes
+ .../bin/Debug/net10.0/Infrastructure.pdb           |  Bin [31m76972[m -> [32m51184[m bytes
+ .../Debug/net10.0/Infrastructure.AssemblyInfo.cs   |    2 [32m+[m[31m-[m
+ .../Infrastructure.AssemblyInfoInputs.cache        |    2 [32m+[m[31m-[m
+ .../obj/Debug/net10.0/Infrastructure.assets.cache  |  Bin [31m23306[m -> [32m5761[m bytes
+ .../Infrastructure.csproj.AssemblyReference.cache  |  Bin [31m13196[m -> [32m4259[m bytes
+ .../Infrastructure.csproj.CoreCompileInputs.cache  |    2 [32m+[m[31m-[m
+ .../obj/Debug/net10.0/Infrastructure.dll           |  Bin [31m371200[m -> [32m247296[m bytes
+ .../obj/Debug/net10.0/Infrastructure.pdb           |  Bin [31m76972[m -> [32m51184[m bytes
+ .../obj/Debug/net10.0/ref/Infrastructure.dll       |  Bin [31m46080[m -> [32m37376[m bytes
+ .../obj/Debug/net10.0/refint/Infrastructure.dll    |  Bin [31m46080[m -> [32m37376[m bytes
+ .../obj/Infrastructure.csproj.nuget.dgspec.json    |   12 [32m+[m[31m-[m
+ .../obj/Infrastructure.csproj.nuget.g.props        |    2 [32m+[m[31m-[m
+ Infrastructure/obj/project.assets.json             | 1081 [32m+[m[31m---------[m
+ Infrastructure/obj/project.nuget.cache             |   66 [32m+[m[31m-[m
+ Web/Controller/AccountController.cs                |    6 [32m+[m[31m-[m
+ Web/bin/Debug/net10.0/Application.dll              |  Bin [31m51200[m -> [32m51200[m bytes
+ Web/bin/Debug/net10.0/Application.pdb              |  Bin [31m34376[m -> [32m34376[m bytes
+ Web/bin/Debug/net10.0/Azure.Core.dll               |  Bin [31m437304[m -> [32m0[m bytes
+ Web/bin/Debug/net10.0/Azure.Identity.dll           |  Bin [31m356912[m -> [32m0[m bytes
+ .../BuildHost-net472/Microsoft.Build.Locator.dll   |  Bin [31m34848[m -> [32m34848[m bytes
+ ...t.CodeAnalysis.Workspaces.MSBuild.BuildHost.exe |  Bin [31m446344[m -> [32m458088[m bytes
+ ...nalysis.Workspaces.MSBuild.BuildHost.exe.config |   18 [32m+[m[31m-[m
+ .../BuildHost-net472/Microsoft.IO.Redist.dll       |  Bin [31m131232[m -> [32m131880[m bytes
+ .../net10.0/BuildHost-net472/Newtonsoft.Json.dll   |  Bin [31m722304[m -> [32m722304[m bytes
+ .../net10.0/BuildHost-net472/System.Buffers.dll    |  Bin [31m20856[m -> [32m23856[m bytes
+ .../BuildHost-net472/System.CommandLine.dll        |  Bin [31m148504[m -> [32m155680[m bytes
+ .../net10.0/BuildHost-net472/System.Memory.dll     |  Bin [31m142240[m -> [32m145192[m bytes
+ .../BuildHost-net472/System.Numerics.Vectors.dll   |  Bin [31m115856[m -> [32m110344[m bytes
+ .../System.Runtime.CompilerServices.Unsafe.dll     |  Bin [31m18024[m -> [32m19224[m bytes
+ .../System.Threading.Tasks.Extensions.dll          |  Bin [31m25984[m -> [32m27944[m bytes
+ .../cs/System.CommandLine.resources.dll            |  Bin [31m18992[m -> [32m18976[m bytes
+ .../de/System.CommandLine.resources.dll            |  Bin [31m18984[m -> [32m18984[m bytes
+ .../es/System.CommandLine.resources.dll            |  Bin [31m18992[m -> [32m18976[m bytes
+ .../fr/System.CommandLine.resources.dll            |  Bin [31m18976[m -> [32m18976[m bytes
+ .../it/System.CommandLine.resources.dll            |  Bin [31m18992[m -> [32m18976[m bytes
+ .../ja/System.CommandLine.resources.dll            |  Bin [31m19016[m -> [32m18976[m bytes
+ .../ko/System.CommandLine.resources.dll            |  Bin [31m19016[m ->
